@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settings - MyFlixVault</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style-edit.css') }}">
+</head>
+<body>
+    <header>
+        <h1>MyFlixVault Settings</h1>
+        <div class="search-container">
+            <a href="{{ url_for('index') }}" style="color:#fff;text-decoration:none;font-weight:bold;">← Back</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>API Configuration</h2>
+        <form method="POST">
+            <div class="form-group">
+                <label for="api_provider">API Provider</label>
+                <select name="api_provider" id="api_provider" required>
+                    <option value="tmdb" {% if settings.api_provider == 'tmdb' %}selected{% endif %}>The Movie DB (TMDB)</option>
+                    <option value="omdb" {% if settings.api_provider == 'omdb' %}selected{% endif %}>OMDB API</option>
+                    <option value="custom" {% if settings.api_provider == 'custom' %}selected{% endif %}>Custom API</option>
+                </select>
+            </div>
+
+            <div id="api-key-fields">
+                <div class="form-group">
+                    <label for="api_key">API Key</label>
+                    <input type="text" name="api_key" id="api_key" value="{{ settings.api_key }}" required>
+                </div>
+            </div>
+
+            <div id="custom-api-fields" style="display: {% if settings.api_provider == 'custom' %}block{% else %}none{% endif %};">
+                <div class="form-group">
+                    <label for="poster_api_url">Poster API URL</label>
+                    <input type="text" name="poster_api_url" id="poster_api_url" value="{{ settings.poster_api_url }}">
+                </div>
+                <div class="form-group">
+                    <label for="trailer_api_url">Trailer API URL</label>
+                    <input type="text" name="trailer_api_url" id="trailer_api_url" value="{{ settings.trailer_api_url }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="local_media_path">Local Media Path</label>
+                <input type="text" name="local_media_path" id="local_media_path" 
+                       value="{{ settings.local_media_path }}" placeholder="e.g., D:\Media">
+                <p class="help-text">Use Windows paths with backslashes (e.g., D:\Media)</p>
+            </div>
+
+            <div class="actions">
+                <button type="submit">Save Settings</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById("api_provider").addEventListener("change", function() {
+            const customFields = document.getElementById("custom-api-fields");
+            if (this.value === "custom") {
+                customFields.style.display = "block";
+            } else {
+                customFields.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ action }} Entry - MyFlixVault</title>
+<link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style-edit.css') }}">
+</head>
+<body>
+
+<header>
+  <h1>MyFlixVault</h1>
+  <div class="search-container">
+    <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}" style="color:#fff;text-decoration:none;font-weight:bold;">← Back</a>
+  </div>
+</header>
+
+<div class="container">
+  <h2>{{ action }} Entry</h2>
+  <form method="POST">
+    <input type="hidden" name="tab" value="{{ tab }}">
+    <input type="hidden" name="q" value="{{ q }}">
+    
+    <div class="form-group">
+      <label for="category">Category</label>
+      <select name="category" id="category" required>
+        <option value="movies" {% if tab == 'movies' %}selected{% endif %}>Movie</option>
+        <option value="series" {% if tab == 'series' %}selected{% endif %}>Series</option>
+      </select>
+    </div>
+
+
+    <div class="form-group">
+      <label for="name">Name</label>
+      <input type="text" name="name" id="name" value="{{ item.name if item else '' }}" required>
+    </div>
+
+    <div class="form-group">
+      <label for="year">Year</label>
+      <input type="text" name="year" id="year" value="{{ item.year if item else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="country">Country</label>
+      <input type="text" name="country" id="country" value="{{ item.country if item else '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="type">Type</label>
+      <input type="text" name="type" id="type" value="{{ item.type if item else '' }}" required>
+    </div>
+
+    <div class="form-group">
+  <label for="poster_url">Poster URL</label>
+  <input type="text" name="poster_url" id="poster_url" value="{{ item.poster_url if item else '' }}">
+</div>
+
+<div id="series-fields" style="display: none;">
+  <div class="form-group">
+    <label for="ep">Episode</label>
+    <input type="text" name="ep" id="ep" value="{{ item.ep if item else '' }}">
+  </div>
+
+  <div class="form-group" style="margin-top:10px;">
+    <label for="condition">Condition</label>
+    <select name="condition" id="condition" required>
+      {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
+        <option value="{{ cond }}" {% if item and item.condition == cond %}selected{% endif %}>{{ cond }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+
+
+
+
+    {% if action == 'Edit' %}
+    <div class="checkbox-group">
+      <input type="checkbox" name="regenerate_poster" id="regenerate_poster">
+      <label for="regenerate_poster">Regenerate Poster</label>
+    </div>
+    {% endif %}
+
+    <div class="actions">
+      <button type="submit">Save</button>
+      <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleSeriesFields() {
+    const category = document.getElementById("category").value;
+    const seriesFields = document.getElementById("series-fields");
+    if (category === "series") {
+      seriesFields.style.display = "block";
+    } else {
+      seriesFields.style.display = "none";
+    }
+  }
+
+  document.getElementById("category").addEventListener("change", toggleSeriesFields);
+
+  // Run it once on page load to handle pre-selected values
+  window.addEventListener("DOMContentLoaded", toggleSeriesFields);
+  </script>
+</body>
+</html>

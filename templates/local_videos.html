@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Local Videos</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <!-- Reuse the same modal from index.html -->
+  <div id="local-media-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
+    <div class="modal-content" style="background:#141414; padding:20px; border-radius:8px; max-height:90%; overflow:auto;">
+  <h2 id="media-title"></h2>
+  <div id="media-results"></div>
+  <button onclick="closeMediaModal()"  style="margin-top:20px; background:red; color:white; border:none; padding:10px 20px;">Close</button>
+</div>
+
+  </div>
+
+  <header>
+    <h1>Local Videos</h1>
+    <div class="search-container">
+      <a href="{{ url_for('index') }}">Back to Collection</a>
+      <input id="search-input" type="text" placeholder="Search..." autocomplete="off" />
+    </div>
+  </header>
+
+  <!--div class="tabs">
+    <button class="tab-button active" data-tab="movies">Movies</button>
+    <button class="tab-button" data-tab="series">Series</button>
+  </div-->
+
+  <div id="movies-container" class="container tab-content active">
+    {% if error %}
+      <div class="error">{{ error }}</div>
+    {% endif %}
+    
+    {% for movie in movies %}
+    <div class="card" data-name="{{ movie.name }}" data-type="movie" data-files="{{ movie.files|tojson|forceescape }}">
+      {% if movie.poster_url %}
+        <img src="{{ get_poster({'poster_url': movie.poster_url, 'name': movie.name, 'year': movie.year, 'type': 'movie'}) }}" 
+             alt="{{ movie.name }} poster" loading="lazy" />
+      {% else %}
+        <div class="poster-placeholder">{{ movie.name }}</div>
+      {% endif %}
+      <h3>{{ movie.name }}{% if movie.year %} ({{ movie.year }}){% endif %}</h3>
+      <p>{{ movie.files|length }} file(s)</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="series-container" class="container tab-content">
+    {% for show in series %}
+    <div class="card" data-name="{{ show.name }}" data-type="series" data-episodes="{{ show.episodes|tojson|forceescape }}">
+      {% if show.poster_url %}
+        <img src="{{ get_poster({'poster_url': show.poster_url, 'name': show.name, 'type': 'series'}) }}" 
+             alt="{{ show.name }} poster" loading="lazy" />
+      {% else %}
+        <div class="poster-placeholder">{{ show.name }}</div>
+      {% endif %}
+      <h3>{{ show.name }}</h3>
+      <p>{{ show.episodes|length }} episode(s)</p>
+    </div>
+    {% endfor %}
+  </div>
+
+<script>
+  // Tab switching (your original code)
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      const tab = this.dataset.tab;
+      document.getElementById(`${tab}-container`).classList.add('active');
+    });
+  });
+
+  // Card click handler updated
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', function () {
+      const type = this.dataset.type;
+      const data = JSON.parse(this.dataset[type === 'movie' ? 'files' : 'episodes']);
+
+      if (data.length === 0) return; // nothing to play
+
+      if (data.length === 1) {
+        // Just one file, play immediately
+        playMedia(type === 'movie' ? data[0] : data[0].file_path);
+      } else {
+        // Multiple files - open modal to choose
+        openMediaModal(this.dataset.name, type, data);
+      }
+    });
+  });
+
+  // Show modal with list of episodes/files to pick from
+  function openMediaModal(title, type, data) {
+    const modal = document.getElementById('local-media-modal');
+    const mediaTitle = document.getElementById('media-title');
+    const mediaResults = document.getElementById('media-results');
+
+    mediaTitle.textContent = title;
+
+    // Clear previous results
+    mediaResults.innerHTML = '';
+
+    // Create list
+    const ul = document.createElement('ul');
+    ul.style.listStyle = 'none';
+    ul.style.padding = '0';
+
+    data.forEach((item, index) => {
+      const li = document.createElement('li');
+      li.style.padding = '8px';
+      li.style.cursor = 'pointer';
+      li.style.borderBottom = '1px solid #ccc';
+
+      // Show episode name or filename
+      let displayText = '';
+
+      if (type === 'movie') {
+        // item is a file path string, display filename
+        displayText = getFileName(item);
+      } else if (type === 'series') {
+        // item is an episode object, show episode number/title if any
+        displayText = item.episode_title || `Episode ${index + 1}`;
+      }
+
+      li.textContent = displayText;
+
+      li.addEventListener('click', () => {
+        closeMediaModal();
+        const path = type === 'movie' ? item : item.file_path;
+        playMedia(path);
+      });
+
+      ul.appendChild(li);
+    });
+
+    mediaResults.appendChild(ul);
+    modal.style.display = 'flex'; // show modal, using flex for center alignment
+  }
+
+  // Utility: extract filename from path
+  function getFileName(path) {
+    return path.split(/[\\/]/).pop();
+  }
+
+  // Play media in new tab
+  function playMedia(path) {
+    const encodedPath = encodeURIComponent(path);
+    window.open(`/play_local?path=${encodedPath}`, '_blank');
+  }
+
+  // Close modal function (your original)
+  function closeMediaModal() {
+    document.getElementById('local-media-modal').style.display = 'none';
+  }
+
+  const searchInput = document.getElementById('search-input');
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim().toLowerCase();
+
+    // Filter movies
+    const movieCards = document.querySelectorAll('#movies-container .card');
+    movieCards.forEach(card => {
+      const name = card.dataset.name.toLowerCase();
+      card.style.display = name.includes(query) ? '' : 'none';
+    });
+
+    // Filter series
+    const seriesCards = document.querySelectorAll('#series-container .card');
+    seriesCards.forEach(card => {
+      const name = card.dataset.name.toLowerCase();
+      card.style.display = name.includes(query) ? '' : 'none';
+    });
+  });
+</script>
+
+</body>
+</html>

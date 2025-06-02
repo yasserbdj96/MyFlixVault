@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MyFlixVault Collection</title>
+  <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Trailer Modal -->
+<!--div id="trailer-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
+  <div style="position:relative; width:90%; max-width:800px;">
+    <iframe id="trailer-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
+    <button onclick="closeTrailer()" style="position:absolute; top:10px; right:10px; background:red; color:white; border:none; padding:5px 10px; font-size:16px;">X</button>
+  </div>
+</div-->
+
+<!-- Add after trailer modal -->
+<div id="local-media-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
+  <div style="background:#000; padding:20px; border-radius:10px; max-height:80vh; overflow-y:auto; width:80%; max-width:800px;">
+      <div style="position:relative;">
+    <iframe id="trailer-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
+    <button onclick="closeTrailer()" style="position:absolute; top:10px; right:10px; background:red; color:white; border:none; padding:5px 10px; font-size:16px;">X</button>
+  </div>
+    <h2 id="media-title" style="margin-top:0;"></h2>
+    <div id="media-results"></div>
+    <button onclick="closeMediaModal()" style="margin-top:20px; background:red; color:white; border:none; padding:10px 20px;">Close</button>
+  </div>
+</div>
+
+  <header>
+    <h1>MyFlixVault</h1>
+    <div class="search-container">
+      <a href="{{ url_for('settings') }}" style="margin-right:10px;">Settings</a>
+      <a href="{{ url_for('local_videos') }}" style="margin-right:10px;">Local Videos</a>
+      <input id="search-input" type="text" placeholder="Search..." autocomplete="off" />
+      <a href="{{ url_for('add_entry') }}?tab={{ active_tab }}&q={{ query|urlencode }}">+ Add</a>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-button {% if active_tab == 'series' %}active{% endif %}" data-tab="series">Series</button>
+    <button class="tab-button {% if active_tab == 'movies' %}active{% endif %}" data-tab="movies">Movies</button>
+  </div>
+
+  <div class="conditions {% if active_tab == 'series' %}active{% endif %}">
+  <button class="condition-button active" data-condition="all">All</button>
+  {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
+    <button class="condition-button" data-condition="{{ cond|lower }}">{{ cond }}</button>
+  {% endfor %}
+</div>
+
+
+  <div id="series-container" class="container tab-content {% if active_tab == 'series' %}active{% endif %}">
+    {% for item in items %}
+    <!-- For series cards -->
+    <div class="card" data-name="{{ item.name|lower }}" data-type="series" data-country="{{ item.country|lower }}" data-current-ep="{{ item.ep }}">
+      {% if item.poster_url %}
+      <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
+      {% endif %}
+      <h3>{{ item.name }}{% if item.year %} ({{ item.year }}){% endif %}</h3>
+      <p>{{ item.ep }}</p>
+      <span class="ribbon {{ item.condition }}">{{ item.condition }}</span>
+      <div class="actions">
+        <a href="{{ url_for('edit_entry', category='series', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Edit</a>
+        <a href="{{ url_for('delete_entry', category='series', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Delete</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div id="movies-container" class="container tab-content {% if active_tab == 'movies' %}active{% endif %}">
+    {% for item in items %}
+      <!-- For movie cards -->
+      <div class="card" data-name="{{ item.name|lower }}" data-type="movie" data-country="{{ item.country|lower }}">
+      {% if item.poster_url %}
+      <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
+      {% endif %}
+      <h3>{{ item.name }}{% if item.year %} ({{ item.year }}){% endif %}</h3>
+      <p>{{ item.type }}</p>
+      <div class="actions">
+        <a href="{{ url_for('edit_entry', category='movies', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Edit</a>
+        <a href="{{ url_for('delete_entry', category='movies', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Delete</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script>
+// Updated normalization function
+function normalizeEpisode(ep) {
+  if (!ep) return '';
+  // Handle absolute episode numbers separately
+  if (/^\d+$/.test(ep)) return ep.padStart(4, '0');  // Pad to 4 digits
+
+  return ep
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/^S(\d+)$/, 'S$1E00')
+    .replace(/^E(\d+)$/, 'S00E$1')
+    .replace(/^(\d+)$/, 'S00E$1')
+    .replace(/(\d+)/g, match => match.padStart(2, '0'));
+}
+
+async function openLocalMedia(name, type, currentEp) {
+    try {
+        const response = await fetch(`/local_media?name=${encodeURIComponent(name)}&type=${type}`);
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`Error: ${data.error}`);
+            return;
+        }
+
+        document.getElementById('media-title').textContent =
+            `${type === 'movie' ? 'Movie' : 'Series'} Files: ${name}`;
+        
+        const resultsDiv = document.getElementById('media-results');
+        resultsDiv.innerHTML = '';
+
+        if (data.results.length === 0) {
+            resultsDiv.innerHTML = '<p>No files found</p>';
+        } else {
+            data.results.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.margin = '10px 0';
+                itemDiv.style.padding = '10px';
+                itemDiv.style.border = '1px solid #ddd';
+                itemDiv.style.borderRadius = '5px';
+
+                const playButton = document.createElement('button');
+                playButton.style.background = '#4CAF50';
+                playButton.style.color = 'white';
+                playButton.style.border = 'none';
+                playButton.style.padding = '5px 10px';
+                playButton.textContent = 'Play';
+                playButton.addEventListener('click', () => {
+                    playMedia(item.path);
+                });
+
+                if (type === 'series') {
+                    itemDiv.innerHTML = `
+                        <p><strong>Episode ${item.episode}</strong></p>
+                        <p>${item.name}</p>
+                    `;
+                    itemDiv.appendChild(playButton);
+
+                    // Check if current episode is absolute number
+                    const isAbsoluteEp = /^\d+$/.test(currentEp);
+
+                    if (isAbsoluteEp) {
+                        // Special handling for absolute episode numbers
+                        const absEpisode = currentEp.padStart(4, '0');
+                        if (item.episode === absEpisode) {
+                            itemDiv.style.border = '2px solid #4CAF50';
+                            itemDiv.style.background = 'rgb(17 86 22)';
+                        }
+                    } else {
+                        // Original season/episode comparison
+                        const normalizedCurrentEp = normalizeEpisode(currentEp);
+                        const normalizedFileEp = normalizeEpisode(item.episode);
+                        if (normalizedFileEp === normalizedCurrentEp) {
+                            itemDiv.style.border = '2px solid #4CAF50';
+                            itemDiv.style.background = 'rgb(17 86 22)';
+                        }
+                    }
+                } else {
+                    itemDiv.innerHTML = `<p>${item.name}</p>`;
+                    itemDiv.appendChild(playButton);
+                }
+
+                resultsDiv.appendChild(itemDiv);
+            });
+        }
+
+        document.getElementById('local-media-modal').style.display = 'flex';
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to load media files');
+    }
+}
+
+// Keep the existing playMedia function
+function playMedia(path) {
+    const encodedPath = encodeURIComponent(path);
+    window.open(`/play_local?path=${encodedPath}`, '_blank');
+}
+
+function closeMediaModal() {
+    document.getElementById('local-media-modal').style.display = 'none';
+    document.getElementById('trailer-frame').src = '';
+}
+
+// Add click handler to cards
+document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('click', function() {
+        const name = this.dataset.name;
+        const type = this.dataset.type;
+        const currentEp = this.dataset.currentEp;
+        openLocalMedia(name, type, currentEp);
+    });
+});
+
+// Prevent card click when clicking actions
+document.querySelectorAll('.actions a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+</script>
+</body>
+</html>
