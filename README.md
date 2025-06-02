@@ -93,5 +93,5 @@ This YAML file contains a comprehensive README with:
 The YAML uses the `|` character to preserve markdown formatting in a multi-line string. To use this:
 1. Save as `readme.yml`
 2. Convert to README.md using:
-```bash
+```
   
