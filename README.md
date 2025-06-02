@@ -77,6 +77,12 @@ pip install -r requirements.txt
 
   # Screenshots
 
+<div align="center">
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/Screenshot/Screenshot 2025-06-02 145921.png.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/Screenshot/Screenshot 2025-06-02 145921.png.png" alt="">
+    </a>
+</div>
+
   # License
   MIT License - Free for personal and commercial use
   ```bash
