@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/static/logo.png" alt="MyFlixVault by yasserbdj96" height="200">
   <h1 style="margin: 10px 0;">MyFlixVault - Media Collection Manager</h1>
-  <p style="font-size: 18px; font-weight: 500; max-width: 600px;">
+  <p style="font-size: 18px; font-weight: 500;">
   MyFlixVault is a self-hosted media collection manager that helps you organize and access your movie and TV show collection. It features automatic metadata fetching, local media playback, and a clean web interface.
   </p>
 </div>
