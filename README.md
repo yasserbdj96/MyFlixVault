@@ -106,19 +106,4 @@ pip install -r requirements.txt
 
   # License
   MIT License - Free for personal and commercial use
-  ```bash
-This YAML file contains a comprehensive README with:
-1. Project title and description
-2. Key features list
-3. Installation instructions
-4. Configuration guide
-5. Usage documentation
-6. Project structure overview
-7. Requirements
-8. License information
-
-The YAML uses the `|` character to preserve markdown formatting in a multi-line string. To use this:
-1. Save as `readme.yml`
-2. Convert to README.md using:
-```
   
