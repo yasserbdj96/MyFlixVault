@@ -1,8 +1,7 @@
 # 🎬 MyFlixVault
 
 <div align="center">
-
-![MyFlixVault Logo](https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/static/logo.png)
+<img src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/static/logo.png" alt="MyFlixVault Logo" height="200">
 
 **A Professional Personal Media Collection Manager with Netflix-Inspired UI**
 
