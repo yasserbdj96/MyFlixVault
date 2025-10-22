@@ -3,7 +3,7 @@
 <div align="center">
 <img src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/static/logo.png" alt="MyFlixVault Logo" height="200">
 
-**A Professional Personal Media Collection Manager with Netflix-Inspired UI**
+**A Professional Personal Media Collection Manager with Inspired UI**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-3.0.0-000000?style=flat-square&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
@@ -38,11 +38,11 @@
 
 ## 🌟 Overview
 
-MyFlixVault is a feature-rich, self-hosted personal media collection manager designed for movie and TV series enthusiasts. With a modern Netflix-inspired interface, it helps you organize, track, and manage your entire media library with ease.
+MyFlixVault is a feature-rich, self-hosted personal media collection manager designed for movie and TV series enthusiasts. With a modern inspired interface, it helps you organize, track, and manage your entire media library with ease.
 
 ### Why MyFlixVault?
 
-- 🎨 **Modern UI/UX** - Beautiful, responsive interface inspired by Netflix
+- 🎨 **Modern UI/UX** - Beautiful, responsive interface inspired
 - 📱 **Cross-Platform** - Works seamlessly on desktop, tablet, and mobile
 - 🎥 **Local Media Support** - Stream videos directly from your hard drive
 - 📊 **Rich Statistics** - Track your watching habits and collection insights
@@ -426,28 +426,28 @@ Format expected:
 ## 📸 Screenshots
 
 ### Main Collection View
-*Beautiful Netflix-inspired interface with cards and smooth animations*
+*Beautiful inspired interface with cards and smooth animations*
 <div align="center">
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-1.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-1.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-1.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-2.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-2.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-2.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-3.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-3.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-3.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-4.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-4.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-4.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-5.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-5.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-5.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-6.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-6.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-6.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
     <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-7.png">
-        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-7.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-7.png" alt="Beautiful inspired interface with cards and smooth animations">
     </a>
 </div>
 
