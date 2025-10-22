@@ -162,8 +162,8 @@ MyFlixVault is a feature-rich, self-hosted personal media collection manager des
 ### Step 1: Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/myflixvault.git
-cd myflixvault
+git clone https://github.com/yasserbdj96/MyFlixVault.git
+cd MyFlixVault
 ```
 
 ### Step 2: Install Dependencies
@@ -615,8 +615,8 @@ copies of the Software...
 
 ### Get Help
 - 📖 [Documentation](docs/)
-- 💬 [Discussions](https://github.com/yourusername/myflixvault/discussions)
-- 🐛 [Issue Tracker](https://github.com/yourusername/myflixvault/issues)
+- 💬 [Discussions](https://github.com/yasserbdj96/MyFlixVault/discussions)
+- 🐛 [Issue Tracker](https://github.com/yasserbdj96/MyFlixVault/issues)
 
 ### Community
 - ⭐ Star this repository
@@ -627,10 +627,10 @@ copies of the Software...
 
 ## 📊 Project Stats
 
-![GitHub stars](https://img.shields.io/github/stars/yourusername/myflixvault?style=social)
-![GitHub forks](https://img.shields.io/github/forks/yourusername/myflixvault?style=social)
-![GitHub issues](https://img.shields.io/github/issues/yourusername/myflixvault)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/yourusername/myflixvault)
+![GitHub stars](https://img.shields.io/github/stars/yasserbdj96/MyFlixVault?style=social)
+![GitHub forks](https://img.shields.io/github/forks/yasserbdj96/MyFlixVault?style=social)
+![GitHub issues](https://img.shields.io/github/issues/yasserbdj96/MyFlixVault)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/yasserbdj96/MyFlixVault)
 
 ---
 
@@ -638,6 +638,6 @@ copies of the Software...
 
 **Made with ❤️ by movie and TV enthusiasts, for enthusiasts**
 
-[⬆ Back to Top](#-myflixvault)
+[⬆ Back to Top](#-MyFlixVault)
 
 </div>
