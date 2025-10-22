@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![MyFlixVault Logo](https://img.shields.io/badge/MyFlixVault-Movie%20Collection%20Manager-e50914?style=for-the-badge&logo=netflix&logoColor=white)
+![MyFlixVault Logo](https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/static/logo.png)
 
 **A Professional Personal Media Collection Manager with Netflix-Inspired UI**
 
