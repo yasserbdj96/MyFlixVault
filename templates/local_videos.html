@@ -3,70 +3,186 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Local Videos</title>
+  <title>Local Videos - MyFlixVault</title>
   <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <!-- Reuse the same modal from index.html -->
-  <div id="local-media-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
-    <div class="modal-content" style="background:#141414; padding:20px; border-radius:8px; max-height:90%; overflow:auto;">
-  <h2 id="media-title"></h2>
-  <div id="media-results"></div>
-  <button onclick="closeMediaModal()"  style="margin-top:20px; background:red; color:white; border:none; padding:10px 20px;">Close</button>
-</div>
+  <!-- Enhanced Modal -->
+  <div id="local-media-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="media-title"></h2>
+        <button onclick="closeMediaModal()" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="media-results"></div>
+      </div>
+    </div>
+  </div>
 
+  <!-- Scan Progress Modal -->
+  <div id="scan-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-body" style="text-align: center; padding: 2rem;">
+        <div class="loading-spinner" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;">
+          <i class="fas fa-spinner fa-spin"></i>
+        </div>
+        <h3>Scanning Media Files...</h3>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">This may take a few moments</p>
+      </div>
+    </div>
   </div>
 
   <header>
-    <h1>Local Videos</h1>
-    <div class="search-container">
-      <a href="{{ url_for('index') }}">Back to Collection</a>
-      <input id="search-input" type="text" placeholder="Search..." autocomplete="off" />
+    <div class="header-content">
+      <h1><i class="fas fa-folder-open"></i> Local Videos</h1>
+      <div class="header-actions">
+        <button onclick="refreshMedia()" class="icon-btn" title="Refresh">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <a href="{{ url_for('index') }}" class="icon-btn" title="Back to Collection">
+          <i class="fas fa-arrow-left"></i>
+        </a>
+      </div>
+    </div>
+    <div class="search-bar">
+      <div class="search-input-wrapper">
+        <i class="fas fa-search"></i>
+        <input id="search-input" type="text" placeholder="Search local videos..." autocomplete="off" />
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" data-view="grid" title="Grid View">
+          <i class="fas fa-th"></i>
+        </button>
+        <button class="view-btn" data-view="list" title="List View">
+          <i class="fas fa-list"></i>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!--div class="tabs">
-    <button class="tab-button active" data-tab="movies">Movies</button>
-    <button class="tab-button" data-tab="series">Series</button>
-  </div-->
-
-  <div id="movies-container" class="container tab-content active">
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
-    
-    {% for movie in movies %}
-    <div class="card" data-name="{{ movie.name }}" data-type="movie" data-files="{{ movie.files|tojson|forceescape }}">
-      {% if movie.poster_url %}
-        <img src="{{ get_poster({'poster_url': movie.poster_url, 'name': movie.name, 'year': movie.year, 'type': 'movie'}) }}" 
-             alt="{{ movie.name }} poster" loading="lazy" />
-      {% else %}
-        <div class="poster-placeholder">{{ movie.name }}</div>
-      {% endif %}
-      <h3>{{ movie.name }}{% if movie.year %} ({{ movie.year }}){% endif %}</h3>
-      <p>{{ movie.files|length }} file(s)</p>
-    </div>
-    {% endfor %}
+  <div class="tabs">
+    <button class="tab-button active" data-tab="movies">
+      <i class="fas fa-film"></i> Movies (<span id="movies-count">{{ movies|length }}</span>)
+    </button>
+    <button class="tab-button" data-tab="series">
+      <i class="fas fa-tv"></i> Series (<span id="series-count">{{ series|length }}</span>)
+    </button>
   </div>
 
-  <div id="series-container" class="container tab-content">
-    {% for show in series %}
-    <div class="card" data-name="{{ show.name }}" data-type="series" data-episodes="{{ show.episodes|tojson|forceescape }}">
-      {% if show.poster_url %}
-        <img src="{{ get_poster({'poster_url': show.poster_url, 'name': show.name, 'type': 'series'}) }}" 
-             alt="{{ show.name }} poster" loading="lazy" />
-      {% else %}
-        <div class="poster-placeholder">{{ show.name }}</div>
-      {% endif %}
-      <h3>{{ show.name }}</h3>
-      <p>{{ show.episodes|length }} episode(s)</p>
+  {% if error %}
+  <div class="error-banner">
+    <i class="fas fa-exclamation-triangle"></i>
+    <div>
+      <strong>Error:</strong> {{ error }}
+      <p>Please check your local media path in <a href="{{ url_for('settings') }}">Settings</a></p>
     </div>
-    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Movies Container -->
+  <div id="movies-container" class="container tab-content active">
+    {% if movies|length == 0 %}
+      <div class="empty-state">
+        <i class="fas fa-film"></i>
+        <h3>No Movies Found</h3>
+        <p>Make sure your local media path is set correctly</p>
+        <a href="{{ url_for('settings') }}" class="btn-primary">
+          <i class="fas fa-cog"></i> Go to Settings
+        </a>
+      </div>
+    {% else %}
+      {% for movie in movies %}
+      <div class="card" data-name="{{ movie.name|lower }}" data-type="movie" data-files='{{ movie.files|tojson }}'>
+        <div class="card-poster">
+          {% if movie.poster_url %}
+            <img src="{{ get_poster({'poster_url': movie.poster_url, 'name': movie.name, 'year': movie.year, 'type': 'movie'}) }}" 
+                 alt="{{ movie.name }} poster" loading="lazy" />
+          {% else %}
+            <div class="poster-placeholder">
+              <i class="fas fa-film"></i>
+            </div>
+          {% endif %}
+          <div class="card-overlay">
+            <button onclick="handleCardClick(event, '{{ movie.name }}', 'movie', {{ movie.files|tojson|forceescape }})" class="play-btn">
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          <h3>{{ movie.name }}</h3>
+          {% if movie.year %}
+            <p class="card-year"><i class="fas fa-calendar"></i> {{ movie.year }}</p>
+          {% endif %}
+          <p class="card-info">
+            <i class="fas fa-folder"></i> {{ movie.files|length }} file(s)
+          </p>
+        </div>
+        <div class="card-actions">
+          <button onclick="quickPlay(event, {{ movie.files|tojson|forceescape }})" class="action-btn play-btn-mini" title="Quick Play">
+            <i class="fas fa-play"></i>
+          </button>
+          <button onclick="addToCollection(event, '{{ movie.name }}', 'movie', '{{ movie.year }}')" class="action-btn add-btn" title="Add to Collection">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Series Container -->
+  <div id="series-container" class="container tab-content">
+    {% if series|length == 0 %}
+      <div class="empty-state">
+        <i class="fas fa-tv"></i>
+        <h3>No Series Found</h3>
+        <p>Make sure your local media path is set correctly</p>
+        <a href="{{ url_for('settings') }}" class="btn-primary">
+          <i class="fas fa-cog"></i> Go to Settings
+        </a>
+      </div>
+    {% else %}
+      {% for show in series %}
+      <div class="card" data-name="{{ show.name|lower }}" data-type="series" data-episodes='{{ show.episodes|tojson }}'>
+        <div class="card-poster">
+          {% if show.poster_url %}
+            <img src="{{ get_poster({'poster_url': show.poster_url, 'name': show.name, 'type': 'series'}) }}" 
+                 alt="{{ show.name }} poster" loading="lazy" />
+          {% else %}
+            <div class="poster-placeholder">
+              <i class="fas fa-tv"></i>
+            </div>
+          {% endif %}
+          <div class="card-overlay">
+            <button onclick="handleCardClick(event, '{{ show.name }}', 'series', {{ show.episodes|tojson|forceescape }})" class="play-btn">
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          <h3>{{ show.name }}</h3>
+          <p class="card-info">
+            <i class="fas fa-list-ol"></i> {{ show.episodes|length }} episode(s)
+          </p>
+        </div>
+        <div class="card-actions">
+          <button onclick="showEpisodeList(event, '{{ show.name }}', {{ show.episodes|tojson|forceescape }})" class="action-btn episodes-btn" title="View Episodes">
+            <i class="fas fa-list"></i>
+          </button>
+          <button onclick="addToCollection(event, '{{ show.name }}', 'series')" class="action-btn add-btn" title="Add to Collection">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
   </div>
 
 <script>
-  // Tab switching (your original code)
+  // Tab switching
   document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', function() {
       document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -81,108 +197,333 @@
     });
   });
 
-  // Card click handler updated
-  document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', function () {
-      const type = this.dataset.type;
-      const data = JSON.parse(this.dataset[type === 'movie' ? 'files' : 'episodes']);
-
-      if (data.length === 0) return; // nothing to play
-
-      if (data.length === 1) {
-        // Just one file, play immediately
-        playMedia(type === 'movie' ? data[0] : data[0].file_path);
-      } else {
-        // Multiple files - open modal to choose
-        openMediaModal(this.dataset.name, type, data);
-      }
+  // View toggle (Grid/List)
+  document.querySelectorAll('.view-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      
+      const view = this.dataset.view;
+      document.querySelectorAll('.container').forEach(container => {
+        if (view === 'list') {
+          container.style.gridTemplateColumns = '1fr';
+        } else {
+          container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+        }
+      });
     });
   });
 
-  // Show modal with list of episodes/files to pick from
-  function openMediaModal(title, type, data) {
-    const modal = document.getElementById('local-media-modal');
-    const mediaTitle = document.getElementById('media-title');
-    const mediaResults = document.getElementById('media-results');
-
-    mediaTitle.textContent = title;
-
-    // Clear previous results
-    mediaResults.innerHTML = '';
-
-    // Create list
-    const ul = document.createElement('ul');
-    ul.style.listStyle = 'none';
-    ul.style.padding = '0';
-
-    data.forEach((item, index) => {
-      const li = document.createElement('li');
-      li.style.padding = '8px';
-      li.style.cursor = 'pointer';
-      li.style.borderBottom = '1px solid #ccc';
-
-      // Show episode name or filename
-      let displayText = '';
-
+  // Handle card click - show modal with file list or play directly
+  function handleCardClick(event, title, type, data) {
+    event.stopPropagation();
+    
+    if (data.length === 1) {
+      // Single file - play directly
+      const path = type === 'movie' ? data[0] : data[0].file_path;
+      playMedia(path);
+    } else {
+      // Multiple files - show selection modal
       if (type === 'movie') {
-        // item is a file path string, display filename
-        displayText = getFileName(item);
-      } else if (type === 'series') {
-        // item is an episode object, show episode number/title if any
-        displayText = item.episode_title || `Episode ${index + 1}`;
+        showFileSelectionModal(title, data);
+      } else {
+        showEpisodeList(event, title, data);
       }
-
-      li.textContent = displayText;
-
-      li.addEventListener('click', () => {
-        closeMediaModal();
-        const path = type === 'movie' ? item : item.file_path;
-        playMedia(path);
-      });
-
-      ul.appendChild(li);
-    });
-
-    mediaResults.appendChild(ul);
-    modal.style.display = 'flex'; // show modal, using flex for center alignment
+    }
   }
 
-  // Utility: extract filename from path
+  // Show file selection modal for movies with multiple files
+  function showFileSelectionModal(title, files) {
+    const modal = document.getElementById('local-media-modal');
+    document.getElementById('media-title').textContent = title;
+    
+    const resultsDiv = document.getElementById('media-results');
+    resultsDiv.innerHTML = '';
+    
+    files.forEach((file, index) => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'media-item';
+      const number = file.match(/\d+/)[0];
+      //<strong>Version ${index + 1}</strong>
+      itemDiv.innerHTML = `
+        <div class="media-info">
+          <strong>Episode ${number}</strong>
+          <p>${getFileName(file)}</p>
+        </div>
+        <button class="media-play-btn" onclick="playMedia(encodeURIComponent('${file.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'))">
+          <i class="fas fa-play"></i> Play
+        </button>
+      `;
+      resultsDiv.appendChild(itemDiv);
+    });
+    
+    modal.classList.add('active');
+  }
+
+  // Show episode list for series
+  function showEpisodeList(event, title, episodes) {
+    event.stopPropagation();
+    
+    const modal = document.getElementById('local-media-modal');
+    document.getElementById('media-title').textContent = `${title} - Episodes`;
+    
+    const resultsDiv = document.getElementById('media-results');
+    resultsDiv.innerHTML = '';
+    
+    // Group episodes by season
+    const seasonGroups = {};
+    episodes.forEach(ep => {
+      const season = ep.season || 'Unknown';
+      if (!seasonGroups[season]) {
+        seasonGroups[season] = [];
+      }
+      seasonGroups[season].push(ep);
+    });
+    
+    // Sort seasons
+    const sortedSeasons = Object.keys(seasonGroups).sort((a, b) => {
+      if (a === 'Unknown') return 1;
+      if (b === 'Unknown') return -1;
+      return parseInt(a) - parseInt(b);
+    });
+    
+    sortedSeasons.forEach(season => {
+      const seasonHeader = document.createElement('div');
+      seasonHeader.style.cssText = `
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 1.5rem 0 1rem;
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: 0.5rem;
+      `;
+      seasonHeader.innerHTML = `<i class="fas fa-folder-open"></i> Season ${season}`;
+      resultsDiv.appendChild(seasonHeader);
+      
+      // Sort episodes within season
+      const sortedEpisodes = seasonGroups[season].sort((a, b) => {
+        return (a.episode || 0) - (b.episode || 0);
+      });
+      
+      sortedEpisodes.forEach(ep => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'media-item';
+        itemDiv.innerHTML = `
+          <div class="media-info">
+            <strong>${ep.episode_str || `Episode ${ep.episode}`}</strong>
+            <p>${getFileName(ep.file_path)}</p>
+          </div>
+          <button class="media-play-btn" onclick="playMedia(encodeURIComponent('${ep.file_path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'))">
+            <i class="fas fa-play"></i> Play
+          </button>
+        `;
+        resultsDiv.appendChild(itemDiv);
+      });
+    });
+    
+    modal.classList.add('active');
+  }
+
+  // Quick play (first file)
+  function quickPlay(event, files) {
+    event.stopPropagation();
+    const path = Array.isArray(files) ? files[0] : files;
+    playMedia(path);
+  }
+
+  // Play media file
+  function playMedia(path) {
+    //const encodedPath = encodeURIComponent(path);
+    window.open(`/play_local?path=${path}`, '_blank');
+  }
+
+  // Close modal
+  function closeMediaModal() {
+    document.getElementById('local-media-modal').classList.remove('active');
+  }
+
+  // Get filename from path
   function getFileName(path) {
     return path.split(/[\\/]/).pop();
   }
 
-  // Play media in new tab
-  function playMedia(path) {
-    const encodedPath = encodeURIComponent(path);
-    window.open(`/play_local?path=${encodedPath}`, '_blank');
+  // Add to collection
+  function addToCollection(event, name, type, year = '') {
+    event.stopPropagation();
+    const url = `/add?tab=${type === 'movie' ? 'movies' : 'series'}&autofill=${encodeURIComponent(JSON.stringify({name, year, type}))}`;
+    window.location.href = url;
   }
 
-  // Close modal function (your original)
-  function closeMediaModal() {
-    document.getElementById('local-media-modal').style.display = 'none';
-  }
-
+  // Search functionality
   const searchInput = document.getElementById('search-input');
+  let searchTimeout;
 
-  searchInput.addEventListener('input', () => {
-    const query = searchInput.value.trim().toLowerCase();
+  searchInput.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch(this.value);
+    }, 300);
+  });
 
-    // Filter movies
-    const movieCards = document.querySelectorAll('#movies-container .card');
-    movieCards.forEach(card => {
-      const name = card.dataset.name.toLowerCase();
-      card.style.display = name.includes(query) ? '' : 'none';
+  function performSearch(query) {
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    document.querySelectorAll('.card').forEach(card => {
+      const name = card.dataset.name;
+      if (name.includes(normalizedQuery)) {
+        card.style.display = '';
+      } else {
+        card.style.display = 'none';
+      }
     });
+    
+    // Update counts
+    updateCounts();
+  }
 
-    // Filter series
-    const seriesCards = document.querySelectorAll('#series-container .card');
-    seriesCards.forEach(card => {
-      const name = card.dataset.name.toLowerCase();
-      card.style.display = name.includes(query) ? '' : 'none';
+  // Update visible counts
+  function updateCounts() {
+    const visibleMovies = document.querySelectorAll('#movies-container .card:not([style*="display: none"])').length;
+    const visibleSeries = document.querySelectorAll('#series-container .card:not([style*="display: none"])').length;
+    
+    document.getElementById('movies-count').textContent = visibleMovies;
+    document.getElementById('series-count').textContent = visibleSeries;
+  }
+
+  // Refresh media
+  function refreshMedia() {
+    const scanModal = document.getElementById('scan-modal');
+    scanModal.classList.add('active');
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  }
+
+  // Close modal on outside click
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.classList.remove('active');
+      }
     });
   });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeMediaModal();
+    }
+    
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      searchInput.focus();
+    }
+    
+    if (e.key === '1' && searchInput !== document.activeElement) {
+      document.querySelector('[data-tab="movies"]').click();
+    }
+    
+    if (e.key === '2' && searchInput !== document.activeElement) {
+      document.querySelector('[data-tab="series"]').click();
+    }
+  });
+
+  // Toast notification
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: ${type === 'success' ? '#46d369' : type === 'error' ? '#f44336' : '#2196f3'};
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      animation: slideInUp 0.3s ease;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.style.animation = 'slideOutDown 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  console.log('%cLocal Videos Browser Ready 📁', 'color: #e50914; font-size: 18px; font-weight: bold;');
 </script>
+
+<style>
+.error-banner {
+  background: rgba(244, 67, 54, 0.1);
+  border-left: 4px solid var(--danger-color);
+  padding: 1.5rem 2rem;
+  margin: 2rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.error-banner i {
+  font-size: 1.5rem;
+  color: var(--danger-color);
+  margin-top: 0.2rem;
+}
+
+.error-banner strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--danger-color);
+}
+
+.error-banner a {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-btn {
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.view-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.view-btn:hover:not(.active) {
+  border-color: var(--primary-color);
+}
+
+.play-btn-mini,
+.episodes-btn,
+.add-btn {
+  font-size: 0.9rem !important;
+}
+
+.add-btn {
+  background: var(--success-color) !important;
+}
+
+.add-btn:hover {
+  background: #3ab359 !important;
+}
+</style>
 
 </body>
 </html>

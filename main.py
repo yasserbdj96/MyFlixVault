@@ -2,31 +2,40 @@ import json
 import os
 import hashlib
 import requests
-import re  # Add this import
+import re
 import urllib.parse
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, send_file  # Add jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, jsonify, send_file
 from PIL import Image
 from io import BytesIO
 import base64
 from collections import defaultdict
+from datetime import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 SETTINGS_FILE = "settings.json"
+WATCH_HISTORY_FILE = "watch_history.json"
 
 class Settings:
     def __init__(self):
-        self.api_provider = ""
-        self.api_key = ""  # Default key
+        self.api_provider = "tmdb"
+        self.api_key = ""
         self.poster_api_url = ""
         self.trailer_api_url = ""
         self.local_media_path = ""
+        self.theme = "dark"
+        self.poster_quality = "w500"
+        self.enable_auto_backup = False
+        self.check_duplicates = True
         
-        # Load settings if exists
         if os.path.exists(SETTINGS_FILE):
             with open(SETTINGS_FILE, 'r') as f:
                 data = json.load(f)
                 for key, value in data.items():
                     if key == "local_media_path" and value:
-                        # Use path normalization instead of string replacement
                         value = os.path.normpath(value)
                     setattr(self, key, value)
 
@@ -34,39 +43,53 @@ class Settings:
         with open(SETTINGS_FILE, 'w') as f:
             json.dump(self.__dict__, f, indent=4)
 
-# Initialize settings
+class WatchHistory:
+    def __init__(self):
+        self.history = []
+        if os.path.exists(WATCH_HISTORY_FILE):
+            with open(WATCH_HISTORY_FILE, 'r') as f:
+                self.history = json.load(f)
+    
+    def add_entry(self, name, media_type, episode=None):
+        entry = {
+            "name": name,
+            "type": media_type,
+            "episode": episode,
+            "timestamp": datetime.now().isoformat()
+        }
+        self.history.insert(0, entry)
+        self.history = self.history[:50]  # Keep last 50 entries
+        self.save()
+    
+    def save(self):
+        with open(WATCH_HISTORY_FILE, 'w') as f:
+            json.dump(self.history, f, indent=4)
+
 app_settings = Settings()
+watch_history = WatchHistory()
 
 app = Flask(__name__)
 JSON_FILE = "my_list.json"
 TEMP_FOLDER = "temp"
+BACKUP_FOLDER = "backups"
 
-# Ensure temp directory exists
 os.makedirs(TEMP_FOLDER, exist_ok=True)
-
-import os
-import re
+os.makedirs(BACKUP_FOLDER, exist_ok=True)
 
 def extract_media_info(filename):
     name = os.path.splitext(filename)[0]
-    original_name = name
-
-    # Replace separators with space
     name = re.sub(r'[_\-.]+', ' ', name)
-
-    # Convert to lowercase for uniform processing
     name = name.lower()
 
-    # Initialize info
     info = {'name': name.strip(), 'type': 'movie'}
 
-    # Try to extract year
+    # First extract year
     year_match = re.search(r'\b(19\d{2}|20\d{2}|202\d)\b', name)
     if year_match:
         info['year'] = year_match.group(1)
         name = name.replace(info['year'], '')
 
-    # Detect episode formats
+    # Try S01E02 or 1x02 patterns first
     ep_match = re.search(r'\bs(\d{1,2})e(\d{1,2})\b', name) or re.search(r'\b(\d{1,2})x(\d{1,2})\b', name)
     if ep_match:
         info['type'] = 'series'
@@ -74,36 +97,39 @@ def extract_media_info(filename):
         info['episode'] = int(ep_match.group(2))
         info['episode_str'] = f"S{info['season']:02d}E{info['episode']:02d}"
         name = name.replace(ep_match.group(0), '')
+    else:
+        # Look for standalone episode numbers (like 1004)
+        standalone_ep_match = re.search(r'\b(\d{3,4})\b', name)
+        if standalone_ep_match:
+            episode_num = standalone_ep_match.group(1)
+            # Make sure it's not a year
+            if not (1900 <= int(episode_num) <= 2030):
+                info['type'] = 'series'
+                info['episode'] = int(episode_num)
+                info['episode_str'] = f"Episode {episode_num}"
+                name = name.replace(episode_num, '')
 
-    # Remove any standalone episode-like numbers (e.g., One Piece 1015)
-    name = re.sub(r'\b\d{3,5}\b', '', name)
-
-    # Remove known junk tags
+    # Remove junk tags
     junk_tags = [
         r'\b(web[-_. ]?dl|nf|hdtv|mycima|wecima|show|tube|autos|ink|world|ar|weciima|mp4|ova|web)\b',
         r'\b(1080p|720p|4k|bluray|webrip|hdrip)\b',
         r'\bsp\b',
+        r'\b(HDTV|WEBRip|BluRay|WEB-DL|HDRip|BRRip|DVDRip|HDCAM|DVD|BDRip|4K|Abyss|HDTS|TVRip|HC|FHDRip|DVDSCR|CAM|PreDVD|TS)\b'
     ]
+
     for pattern in junk_tags:
         name = re.sub(pattern, '', name, flags=re.IGNORECASE)
 
     # Clean up extra spaces
     name = re.sub(r'\s+', ' ', name).strip()
-
-    # Final display name
     info['name'] = name.title()
 
     return info
 
-
-
-
-# Modify get_movie_poster function
 def get_movie_poster(movie_name, typeis, year=None, region=None):
     settings = app_settings
 
     if settings.api_provider == "omdb":
-        # OMDB implementation
         base_url = 'http://www.omdbapi.com/'
         params = {
             'apikey': settings.api_key,
@@ -111,18 +137,18 @@ def get_movie_poster(movie_name, typeis, year=None, region=None):
             'type': 'movie' if typeis.lower() == 'movie' else 'series',
             'y': year
         }
-        response = requests.get(base_url, params=params)
-        data = response.json()
-        return data.get('Poster') if 'Poster' in data else None
+        try:
+            response = requests.get(base_url, params=params, timeout=5)
+            data = response.json()
+            return data.get('Poster') if 'Poster' in data else None
+        except Exception as e:
+            logger.error(f"OMDB API error: {e}")
+            return None
 
     elif settings.api_provider == "custom" and settings.poster_api_url:
-        # Custom API implementation
-        base_url = settings.poster_api_url
-        # Example: response = requests.get(base_url, params={...})
-        # return response.json().get('poster_url')
         return None
 
-    else:  # Default to TMDB
+    else:  # TMDB
         typeis = typeis.lower().split()[0]
         base_url = f'https://api.themoviedb.org/3/search/{typeis}'
         params = {
@@ -137,48 +163,51 @@ def get_movie_poster(movie_name, typeis, year=None, region=None):
         if region:
             params['region'] = region.upper()
 
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()
-        results = response.json().get('results', [])
+        try:
+            response = requests.get(base_url, params=params, timeout=5)
+            response.raise_for_status()
+            results = response.json().get('results', [])
 
-        if results:
-            title_key = 'title' if typeis == 'movie' else 'name'
-            for result in results:
-                title = result.get(title_key, '').lower()
-                result_year = (result.get('release_date') or result.get('first_air_date') or '')[:4]
-                if title == movie_name.lower() and (not year or result_year == str(year)):
-                    poster_path = result.get('poster_path')
-                    if poster_path:
-                        return f'https://image.tmdb.org/t/p/w500{poster_path}'
-            poster_path = results[0].get('poster_path')
-            if poster_path:
-                return f'https://image.tmdb.org/t/p/w500{poster_path}'
-        print(f"[WARN] Poster not found for: {movie_name}")
+            if results:
+                title_key = 'title' if typeis == 'movie' else 'name'
+                for result in results:
+                    title = result.get(title_key, '').lower()
+                    result_year = (result.get('release_date') or result.get('first_air_date') or '')[:4]
+                    if title == movie_name.lower() and (not year or result_year == str(year)):
+                        poster_path = result.get('poster_path')
+                        if poster_path:
+                            return f'https://image.tmdb.org/t/p/{settings.poster_quality}{poster_path}'
+                poster_path = results[0].get('poster_path')
+                if poster_path:
+                    return f'https://image.tmdb.org/t/p/{settings.poster_quality}{poster_path}'
+            logger.warning(f"Poster not found for: {movie_name}")
+        except Exception as e:
+            logger.error(f"TMDB API error: {e}")
         return None
 
 def get_cached_poster(url, fallback_info=None):
+    if not url:
+        return url_for('static', filename='images/no-poster.png')
+    
     os.makedirs(TEMP_FOLDER, exist_ok=True)
     filename = hashlib.md5(url.encode()).hexdigest() + ".jpg"
     filepath = os.path.join(TEMP_FOLDER, filename)
 
-    # Serve from cache if file exists
     if os.path.exists(filepath):
         return url_for('poster_file', filename=filename)
 
     try:
-        # Try downloading and resizing the poster
         response = requests.get(url, timeout=5)
         response.raise_for_status()
 
         img = Image.open(BytesIO(response.content))
-        img.thumbnail((200, 300))  # Resize to small
-        img.save(filepath, format="JPEG")
+        img.thumbnail((300, 450))
+        img.save(filepath, format="JPEG", quality=85)
         return url_for('poster_file', filename=filename)
 
     except Exception as e:
-        print(f"[ERROR] Failed to fetch/save poster: {e}")
+        logger.error(f"Failed to fetch/save poster: {e}")
 
-        # If fallback_info is available, try to regenerate poster
         if fallback_info:
             name = fallback_info.get('name')
             media_type = fallback_info.get('type')
@@ -187,11 +216,10 @@ def get_cached_poster(url, fallback_info=None):
 
             new_url = get_movie_poster(name, media_type, year=year, region=country)
             if new_url and new_url != url:
-                print(f"[INFO] Regenerating poster for '{name}'")
+                logger.info(f"Regenerating poster for '{name}'")
                 return get_cached_poster(new_url, fallback_info=fallback_info)
 
-    # Final fallback to original URL
-    return url
+    return url_for('static', filename='images/no-poster.png')
 
 @app.route('/temp/<path:filename>')
 def poster_file(filename):
@@ -200,8 +228,8 @@ def poster_file(filename):
 @app.context_processor
 def inject_helpers():
     def get_poster_safe(item):
-        return get_cached_poster(item['poster_url'], fallback_info=item)
-    return {'get_poster': get_poster_safe}
+        return get_cached_poster(item.get('poster_url'), fallback_info=item)
+    return {'get_poster': get_poster_safe, 'settings': app_settings}
 
 def load_data():
     if not os.path.exists(JSON_FILE):
@@ -212,25 +240,47 @@ def load_data():
 def save_data(data):
     with open(JSON_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+    
+    if app_settings.enable_auto_backup:
+        backup_file = os.path.join(BACKUP_FOLDER, f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
 @app.route('/')
 def index():
     active_tab = request.args.get('tab', 'series')
     query = request.args.get('q', '').lower()
+    sort_by = request.args.get('sort', 'name')
+    
     data = load_data()
-    if active_tab == 'series':
-        items = data.get('series', [])
-    else:
-        items = data.get('movies', [])
+    all_items = data.get('series' if active_tab == 'series' else 'movies', [])
+    
+    # Add original index to each item for proper edit/delete links
+    items_with_index = []
+    for idx, item in enumerate(all_items):
+        item_copy = item.copy()
+        item_copy['original_index'] = idx
+        items_with_index.append(item_copy)
+    
+    # Filter items
     if query:
-        query = query.lower()
-        filtered_items = [item for item in items if query in item['name'].lower()]
+        filtered_items = [item for item in items_with_index if query in item['name'].lower()]
     else:
-        filtered_items = items
+        filtered_items = items_with_index
+    
+    # Sort items
+    if sort_by == 'name':
+        filtered_items.sort(key=lambda x: x['name'].lower())
+    elif sort_by == 'year':
+        filtered_items.sort(key=lambda x: x.get('year', '0'), reverse=True)
+    elif sort_by == 'date_added':
+        filtered_items.reverse()
+    
     return render_template('index.html', 
                           items=filtered_items,
                           active_tab=active_tab,
                           query=query,
+                          sort_by=sort_by,
                           show_local_videos=True)
 
 @app.route('/add', methods=['GET', 'POST'])
@@ -247,6 +297,8 @@ def add_entry():
         media_type = request.form['type']
         ep = request.form.get('ep', '') if category == 'series' else ''
         condition = request.form.get('condition', '') if category == 'series' else ''
+        rating = request.form.get('rating', '')
+        notes = request.form.get('notes', '')
 
         query_str = f"{name}"
         poster_url = request.form.get('poster_url') or get_movie_poster(query_str, media_type, year, region=country)
@@ -256,12 +308,20 @@ def add_entry():
             "year": year,
             "country": country,
             "type": media_type,
-            "poster_url": poster_url
+            "poster_url": poster_url,
+            "rating": rating,
+            "notes": notes,
+            "date_added": datetime.now().isoformat()
         }
 
         if category == 'series':
             new_entry["ep"] = ep
             new_entry["condition"] = condition
+
+        if app_settings.check_duplicates:
+            duplicates = [i for i in data[category] if i['name'].strip().lower() == name.strip().lower()]
+            if duplicates:
+                return f"Duplicate {category[:-1]} '{name}' already exists!", 400
 
         data[category].append(new_entry)
         save_data(data)
@@ -290,6 +350,8 @@ def edit_entry(category, index):
         item['country'] = request.form['country']
         item['type'] = request.form['type']
         item['poster_url'] = request.form.get('poster_url', '')
+        item['rating'] = request.form.get('rating', '')
+        item['notes'] = request.form.get('notes', '')
 
         if category == 'series':
             item['ep'] = request.form.get('ep', '')
@@ -319,7 +381,6 @@ def delete_entry(category, index):
     query = request.args.get('q', '')
     return redirect(url_for('index', tab=tab, q=query))
 
-# Modify get_trailer function similarly
 @app.route('/trailer')
 def get_trailer():
     settings = app_settings
@@ -329,12 +390,8 @@ def get_trailer():
     country = request.args.get('country')
 
     if settings.api_provider == "custom" and settings.trailer_api_url:
-        # Custom trailer API implementation
-        # Example: response = requests.get(settings.trailer_api_url, params={...})
-        # return {'trailer_url': response.json().get('trailer_url')}
         return {'trailer_url': None}
     else:
-        # Original TMDB implementation
         API_KEY = settings.api_key
         search_type = media_type.lower().split()[0]
         search_url = f'https://api.themoviedb.org/3/search/{search_type}'
@@ -354,18 +411,15 @@ def get_trailer():
             search_params['region'] = country.upper()
 
         try:
-            search_res = requests.get(search_url, params=search_params).json()
+            search_res = requests.get(search_url, params=search_params, timeout=5).json()
             results = search_res.get('results', [])
             if not results:
-                print(f"[INFO] No results found for: {name}")
-                # Try without region/year if initial search fails
                 new_params = {k: v for k, v in search_params.items() if k not in ['region', 'year', 'first_air_date_year']}
-                search_res = requests.get(search_url, params=new_params).json()
+                search_res = requests.get(search_url, params=new_params, timeout=5).json()
                 results = search_res.get('results', [])
                 if not results:
                     return {'trailer_url': None}
 
-            # Improved exact matching
             title_key = 'name' if search_type == 'tv' else 'title'
             clean_name = re.sub(r'[^\w\s]', '', name.lower())
 
@@ -376,7 +430,6 @@ def get_trailer():
                     exact_match = item
                     break
 
-            # Fallback to partial match if no exact match
             item_id = None
             if exact_match:
                 item_id = exact_match['id']
@@ -394,7 +447,7 @@ def get_trailer():
                 return {'trailer_url': None}
 
             video_url = video_url_template.format(type=search_type, id=item_id)
-            video_res = requests.get(video_url, params={'api_key': API_KEY}).json()
+            video_res = requests.get(video_url, params={'api_key': API_KEY}, timeout=5).json()
             videos = video_res.get('results', [])
 
             for vid in videos:
@@ -402,11 +455,10 @@ def get_trailer():
                     return {'trailer_url': f"https://www.youtube.com/embed/{vid['key']}"}
 
         except Exception as e:
-            print(f"[ERROR] Fetching trailer failed: {e}")
+            logger.error(f"Fetching trailer failed: {e}")
 
         return {'trailer_url': None}
 
-# Add this route
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
     global app_settings
@@ -417,13 +469,16 @@ def settings():
         if app_settings.api_provider == 'custom':
             app_settings.poster_api_url = request.form['poster_api_url']
             app_settings.trailer_api_url = request.form['trailer_api_url']
-        app_settings.local_media_path = request.form['local_media_path']  # Add this line
+        app_settings.local_media_path = request.form['local_media_path']
+        app_settings.theme = request.form.get('theme', 'dark')
+        app_settings.poster_quality = request.form.get('poster_quality', 'w500')
+        app_settings.enable_auto_backup = 'enable_auto_backup' in request.form
+        app_settings.check_duplicates = 'check_duplicates' in request.form
         app_settings.save()
         return redirect(url_for('index'))
     
     return render_template('settings.html', settings=app_settings)
 
-# Add new endpoint for local media
 @app.route('/local_media')
 def local_media():
     name = request.args.get('name')
@@ -440,7 +495,6 @@ def local_media():
         base_path = os.path.normpath(base_path)
         
         if media_type == 'movie':
-            # Movie search remains unchanged
             for root, _, files in os.walk(base_path):
                 for file in files:
                     if file.lower().endswith(('.mp4', '.mkv', '.avi', '.mov')):
@@ -454,7 +508,6 @@ def local_media():
                             })
                             
         elif media_type == 'series':
-            # NEW: Search all video files recursively
             for root, _, files in os.walk(base_path):
                 for file in files:
                     if file.lower().endswith(('.mp4', '.mkv', '.avi', '.mov')):
@@ -462,9 +515,7 @@ def local_media():
                         file_name = os.path.splitext(file)[0]
                         normalized_file = re.sub(r'[^a-z0-9]', '', file_name.lower())
                         
-                        # Check if series name appears in filename
                         if normalized_name in normalized_file:
-                            # Extract episode number directly from filename
                             ep_match = re.search(r'(\d{3,4}(?:\.\d+)?)', file)
                             ep_num = ep_match.group(1) if ep_match else "Unknown"
 
@@ -474,10 +525,9 @@ def local_media():
                                 "path": file_path
                             })
     except Exception as e:
-        print(f"Error scanning media: {e}")
+        logger.error(f"Error scanning media: {e}")
         return jsonify({"error": "Error scanning media files"})
 
-    # Sort episodes by episode number if series
     if media_type == 'series':
         def extract_ep_num(item):
             try:
@@ -488,7 +538,6 @@ def local_media():
 
     return jsonify({"results": results})
 
-# Add endpoint to serve local media
 @app.route('/play_local')
 def play_local():
     file_path = request.args.get('path')
@@ -500,7 +549,6 @@ def play_local():
     base_path = os.path.abspath(app_settings.local_media_path)
     full_path = os.path.abspath(file_path)
 
-    # Security checks (same as before)
     if not os.path.exists(full_path):
         dir_path, filename = os.path.split(full_path)
         if os.path.exists(dir_path):
@@ -511,12 +559,18 @@ def play_local():
     if not os.path.exists(full_path):
         return f"File not found: {full_path}", 404
     if not full_path.startswith(base_path):
-        return f"Forbidden: File not in media directory {base_path}", 403
+        return f"Forbidden: File not in media directory", 403
 
-    # Pass the filename as title
+    # Add to watch history
+    file_info = extract_media_info(os.path.basename(full_path))
+    watch_history.add_entry(
+        file_info['name'], 
+        file_info['type'],
+        file_info.get('episode_str')
+    )
+
     return render_template('video_player.html', title=os.path.basename(full_path), path=file_path)
 
-# Serve the video file itself (for <video src="...">)
 @app.route('/video_file')
 def serve_video_file():
     path = request.args.get('path')
@@ -563,7 +617,7 @@ def local_videos():
                         'episode': file_info.get('episode'),
                         'episode_str': file_info.get('episode_str')
                     })
-    # Prepare series for template
+    
     series_list = []
     for name, episodes in media_items['series'].items():
         poster_url = get_movie_poster(name, 'tv')
@@ -576,6 +630,220 @@ def local_videos():
     return render_template('local_videos.html', 
                            movies=media_items['movies'], 
                            series=series_list)
+
+@app.route('/watch_history')
+def get_watch_history():
+    return jsonify(watch_history.history)
+
+@app.route('/statistics')
+def statistics():
+    data = load_data()
+    stats = {
+        'total_series': len(data.get('series', [])),
+        'total_movies': len(data.get('movies', [])),
+        'series_by_condition': {},
+        'items_by_year': {},
+        'items_by_country': {}
+    }
+    
+    for series in data.get('series', []):
+        condition = series.get('condition', 'Unknown')
+        stats['series_by_condition'][condition] = stats['series_by_condition'].get(condition, 0) + 1
+    
+    for item in data.get('series', []) + data.get('movies', []):
+        year = item.get('year', 'Unknown')
+        country = item.get('country', 'Unknown')
+        stats['items_by_year'][year] = stats['items_by_year'].get(year, 0) + 1
+        stats['items_by_country'][country] = stats['items_by_country'].get(country, 0) + 1
+    
+    return jsonify(stats)
+
+@app.route('/scan_empty_posters')
+def scan_empty_posters():
+    """Scan for items with empty poster URLs"""
+    try:
+        data = load_data()
+        empty_items = {
+            'series': [],
+            'movies': []
+        }
+        
+        # Scan series with empty poster URLs
+        for item in data.get('series', []):
+            if not item.get('poster_url'):
+                empty_items['series'].append(item)
+        
+        # Scan movies with empty poster URLs
+        for item in data.get('movies', []):
+            if not item.get('poster_url'):
+                empty_items['movies'].append(item)
+        
+        return jsonify(empty_items)
+    
+    except Exception as e:
+        logger.error(f"Error scanning empty posters: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/regenerate_empty_posters', methods=['POST'])
+def regenerate_empty_posters():
+    """Regenerate posters for all items with empty poster URLs"""
+    try:
+        data = load_data()
+        regenerated = 0
+        failed = 0
+        
+        # Regenerate series posters
+        for item in data.get('series', []):
+            if not item.get('poster_url'):
+                try:
+                    query_str = f"{item['name']}"
+                    new_poster = get_movie_poster(
+                        query_str, 
+                        item.get('type', 'tv'), 
+                        item.get('year'), 
+                        region=item.get('country')
+                    )
+                    if new_poster:
+                        item['poster_url'] = new_poster
+                        regenerated += 1
+                    else:
+                        failed += 1
+                except Exception as e:
+                    logger.error(f"Failed to regenerate poster for series {item['name']}: {e}")
+                    failed += 1
+        
+        # Regenerate movie posters
+        for item in data.get('movies', []):
+            if not item.get('poster_url'):
+                try:
+                    query_str = f"{item['name']}"
+                    new_poster = get_movie_poster(
+                        query_str, 
+                        item.get('type', 'movie'), 
+                        item.get('year'), 
+                        region=item.get('country')
+                    )
+                    if new_poster:
+                        item['poster_url'] = new_poster
+                        regenerated += 1
+                    else:
+                        failed += 1
+                except Exception as e:
+                    logger.error(f"Failed to regenerate poster for movie {item['name']}: {e}")
+                    failed += 1
+        
+        # Save the updated data
+        save_data(data)
+        
+        return jsonify({
+            'regenerated': regenerated,
+            'failed': failed,
+            'message': f'Successfully regenerated {regenerated} posters. {failed} failed.'
+        })
+    
+    except Exception as e:
+        logger.error(f"Error regenerating empty posters: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/scan_duplicates')
+def scan_duplicates():
+    """Scan for duplicate movie and series names (same name + same year + same country)"""
+    try:
+        data = load_data()
+        duplicates = {
+            'series': [],
+            'movies': []
+        }
+
+        # Helper function to find duplicates by name + year + country
+        def find_duplicates(items):
+            seen = {}
+            dups = []
+            for item in items:
+                name = item.get('name', '').strip().lower()
+                year = str(item.get('year', '')).strip().lower()
+                country = str(item.get('country', '')).strip().lower()
+                if not name:
+                    continue
+
+                key = f"{name}|{year}|{country}"
+                if key in seen:
+                    # Only add the first occurrence once
+                    if seen[key] is not None:
+                        dups.append(seen[key])
+                        seen[key] = None
+                    dups.append(item)
+                else:
+                    seen[key] = item
+            return dups
+
+        duplicates['series'] = find_duplicates(data.get('series', []))
+        duplicates['movies'] = find_duplicates(data.get('movies', []))
+
+        return jsonify(duplicates)
+
+    except Exception as e:
+        logger.error(f"Error scanning duplicates: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/export_backup')
+def export_backup():
+    """Export a complete backup of the collection"""
+    try:
+        data = load_data()
+        
+        # Add metadata
+        backup_data = {
+            "metadata": {
+                "export_date": datetime.now().isoformat(),
+                "version": "1.0",
+                "total_movies": len(data.get('movies', [])),
+                "total_series": len(data.get('series', []))
+            },
+            "collection": data
+        }
+        
+        # Create JSON response
+        response = jsonify(backup_data)
+        response.headers['Content-Disposition'] = f'attachment; filename=myflixvault_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+        response.headers['Content-Type'] = 'application/json'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting backup: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/import_backup', methods=['POST'])
+def import_backup():
+    """Import a backup file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        if file and file.filename.endswith('.json'):
+            data = json.load(file)
+            
+            # Validate backup structure
+            if 'collection' not in data:
+                return jsonify({"error": "Invalid backup file format"}), 400
+            
+            # Save the imported data
+            save_data(data['collection'])
+            
+            return jsonify({
+                "message": f"Successfully imported {len(data['collection'].get('movies', []))} movies and {len(data['collection'].get('series', []))} series"
+            })
+        
+        return jsonify({"error": "Invalid file type. Please upload a JSON file"}), 400
+        
+    except Exception as e:
+        logger.error(f"Error importing backup: {e}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = 8080

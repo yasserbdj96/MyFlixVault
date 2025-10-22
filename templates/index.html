@@ -6,95 +6,280 @@
   <title>MyFlixVault Collection</title>
   <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body data-theme="{{ settings.theme }}">
 
-<!-- Trailer Modal -->
-<!--div id="trailer-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
-  <div style="position:relative; width:90%; max-width:800px;">
-    <iframe id="trailer-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
-    <button onclick="closeTrailer()" style="position:absolute; top:10px; right:10px; background:red; color:white; border:none; padding:5px 10px; font-size:16px;">X</button>
+<!-- Enhanced Trailer/Media Modal -->
+<div id="local-media-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="media-title"></h2>
+      <button onclick="closeMediaModal()" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="trailer-container" style="display:none;">
+        <iframe id="trailer-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
+      </div>
+      <div id="media-results"></div>
+    </div>
   </div>
-</div-->
+</div>
 
-<!-- Add after trailer modal -->
-<div id="local-media-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#000000cc; justify-content:center; align-items:center; z-index:9999;">
-  <div style="background:#000; padding:20px; border-radius:10px; max-height:80vh; overflow-y:auto; width:80%; max-width:800px;">
-      <div style="position:relative;">
-    <iframe id="trailer-frame" width="100%" height="450" frameborder="0" allowfullscreen></iframe>
-    <button onclick="closeTrailer()" style="position:absolute; top:10px; right:10px; background:red; color:white; border:none; padding:5px 10px; font-size:16px;">X</button>
+<!-- Statistics Modal -->
+<div id="stats-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Collection Statistics</h2>
+      <button onclick="closeStatsModal()" class="close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="stats-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <i class="fas fa-film"></i>
+            <h3 id="total-movies">0</h3>
+            <p>Movies</p>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-tv"></i>
+            <h3 id="total-series">0</h3>
+            <p>Series</p>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-play-circle"></i>
+            <h3 id="total-watching">0</h3>
+            <p>Watching</p>
+          </div>
+          <div class="stat-card">
+            <i class="fas fa-check-circle"></i>
+            <h3 id="total-finished">0</h3>
+            <p>Finished</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-    <h2 id="media-title" style="margin-top:0;"></h2>
-    <div id="media-results"></div>
-    <button onclick="closeMediaModal()" style="margin-top:20px; background:red; color:white; border:none; padding:10px 20px;">Close</button>
+</div>
+
+<!-- Watch History Sidebar -->
+<div id="history-sidebar" class="sidebar">
+  <div class="sidebar-header">
+    <h3>Watch History</h3>
+    <button onclick="closeHistorySidebar()" class="close-btn">&times;</button>
+  </div>
+  <div class="sidebar-body" id="history-content">
+    <!-- History items will be loaded here -->
   </div>
 </div>
 
   <header>
-    <h1>MyFlixVault</h1>
-    <div class="search-container">
-      <a href="{{ url_for('settings') }}" style="margin-right:10px;">Settings</a>
-      <a href="{{ url_for('local_videos') }}" style="margin-right:10px;">Local Videos</a>
-      <input id="search-input" type="text" placeholder="Search..." autocomplete="off" />
-      <a href="{{ url_for('add_entry') }}?tab={{ active_tab }}&q={{ query|urlencode }}">+ Add</a>
+    <div class="header-content">
+      <h1><i class="fas fa-video"></i> MyFlixVault</h1>
+      <div class="header-actions">
+        <button onclick="openHistorySidebar()" class="icon-btn" title="Watch History">
+          <i class="fas fa-history"></i>
+        </button>
+        <button onclick="openStatsModal()" class="icon-btn" title="Statistics">
+          <i class="fas fa-chart-pie"></i>
+        </button>
+        <a href="{{ url_for('settings') }}" class="icon-btn" title="Settings">
+          <i class="fas fa-cog"></i>
+        </a>
+        <a href="{{ url_for('local_videos') }}" class="icon-btn" title="Local Videos">
+          <i class="fas fa-folder-open"></i>
+        </a>
+      </div>
+    </div>
+    <!-- Search Bar -->
+    <div class="search-bar">
+    <div class="search-input-wrapper">
+        <i class="fas fa-search"></i>
+        <input id="search-input" type="text" placeholder="Search your collection..." autocomplete="on" value="{{ query }}" />
+    </div>
+    <div class="sort-controls">
+        <select id="sort-select" onchange="updateSort()">
+        <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name</option>
+        <option value="year" {% if sort_by == 'year' %}selected{% endif %}>Year</option>
+        <option value="date_added" {% if sort_by == 'date_added' %}selected{% endif %}>Date Added</option>
+        </select>
+    </div>
+    <a href="{{ url_for('add_entry') }}?tab={{ active_tab }}&q={{ query|urlencode }}" class="add-btn">
+        <i class="fas fa-plus"></i> Add
+    </a>
     </div>
   </header>
 
   <div class="tabs">
-    <button class="tab-button {% if active_tab == 'series' %}active{% endif %}" data-tab="series">Series</button>
-    <button class="tab-button {% if active_tab == 'movies' %}active{% endif %}" data-tab="movies">Movies</button>
+    <button class="tab-button {% if active_tab == 'series' %}active{% endif %}" data-tab="series">
+      <i class="fas fa-tv"></i> Series
+    </button>
+    <button class="tab-button {% if active_tab == 'movies' %}active{% endif %}" data-tab="movies">
+      <i class="fas fa-film"></i> Movies
+    </button>
   </div>
 
   <div class="conditions {% if active_tab == 'series' %}active{% endif %}">
-  <button class="condition-button active" data-condition="all">All</button>
-  {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
-    <button class="condition-button" data-condition="{{ cond|lower }}">{{ cond }}</button>
-  {% endfor %}
-</div>
-
+    <button class="condition-button active" data-condition="all">
+      <i class="fas fa-list"></i> All
+    </button>
+    {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
+      <button class="condition-button" data-condition="{{ cond|lower }}">
+        {% if cond == 'Stopped' %}<i class="fas fa-pause-circle"></i>
+        {% elif cond == 'Finished' %}<i class="fas fa-check-circle"></i>
+        {% elif cond == 'Awaiting' %}<i class="fas fa-clock"></i>
+        {% elif cond == 'Watching' %}<i class="fas fa-play-circle"></i>
+        {% endif %}
+        {{ cond }}
+      </button>
+    {% endfor %}
+  </div>
 
   <div id="series-container" class="container tab-content {% if active_tab == 'series' %}active{% endif %}">
-    {% for item in items %}
-    <!-- For series cards -->
-    <div class="card" data-name="{{ item.name|lower }}" data-type="series" data-country="{{ item.country|lower }}" data-current-ep="{{ item.ep }}">
-      {% if item.poster_url %}
-      <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
-      {% endif %}
-      <h3>{{ item.name }}{% if item.year %} ({{ item.year }}){% endif %}</h3>
-      <p>{{ item.ep }}</p>
-      <span class="ribbon {{ item.condition }}">{{ item.condition }}</span>
-      <div class="actions">
-        <a href="{{ url_for('edit_entry', category='series', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Edit</a>
-        <a href="{{ url_for('delete_entry', category='series', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Delete</a>
+    {% if items|length == 0 %}
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>No series found</h3>
+        <p>Start adding series to your collection</p>
+        <a href="{{ url_for('add_entry') }}?tab=series" class="btn-primary">
+          <i class="fas fa-plus"></i> Add Series
+        </a>
       </div>
-    </div>
-    {% endfor %}
+    {% else %}
+      {% for item in items %}
+        <div class="card" data-name="{{ item.name|lower }}" data-type="series" data-country="{{ item.country|lower }}" data-current-ep="{{ item.ep }}" data-condition="{{ item.condition|lower }}">
+          <div class="card-poster">
+            {% if item.poster_url %}
+              <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
+            {% else %}
+              <div class="poster-placeholder">
+                <i class="fas fa-tv"></i>
+              </div>
+            {% endif %}
+            <div class="card-overlay">
+              <button onclick="openTrailer(event, '{{ item.name }}', '{{ item.type }}', '{{ item.year }}', '{{ item.country }}')" class="play-btn">
+                <i class="fas fa-play"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <h3>{{ item.name }}</h3>
+            {% if item.year %}
+              <p class="card-year"><i class="fas fa-calendar"></i> {{ item.year }}</p>
+            {% endif %}
+            <p class="card-episode"><i class="fas fa-list-ol"></i> {{ item.ep }}</p>
+            {% if item.rating %}
+              <p class="card-rating">
+                <i class="fas fa-star"></i> {{ item.rating }}/10
+              </p>
+            {% endif %}
+          </div>
+          <span class="ribbon {{ item.condition|lower }}">{{ item.condition }}</span>
+          <div class="card-actions">
+            <a href="{{ url_for('edit_entry', category='series', index=item.original_index) }}?tab={{ active_tab }}&q={{ query|urlencode }}" class="action-btn edit-btn" onclick="event.stopPropagation()">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a href="{{ url_for('delete_entry', category='series', index=item.original_index) }}?tab={{ active_tab }}&q={{ query|urlencode }}" class="action-btn delete-btn" onclick="event.stopPropagation(); return confirm('Are you sure?')">
+              <i class="fas fa-trash"></i>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
   </div>
 
   <div id="movies-container" class="container tab-content {% if active_tab == 'movies' %}active{% endif %}">
-    {% for item in items %}
-      <!-- For movie cards -->
-      <div class="card" data-name="{{ item.name|lower }}" data-type="movie" data-country="{{ item.country|lower }}">
-      {% if item.poster_url %}
-      <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
-      {% endif %}
-      <h3>{{ item.name }}{% if item.year %} ({{ item.year }}){% endif %}</h3>
-      <p>{{ item.type }}</p>
-      <div class="actions">
-        <a href="{{ url_for('edit_entry', category='movies', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Edit</a>
-        <a href="{{ url_for('delete_entry', category='movies', index=loop.index0) }}?tab={{ active_tab }}&q={{ query|urlencode }}">Delete</a>
+    {% if items|length == 0 %}
+      <div class="empty-state">
+        <i class="fas fa-inbox"></i>
+        <h3>No movies found</h3>
+        <p>Start adding movies to your collection</p>
+        <a href="{{ url_for('add_entry') }}?tab=movies" class="btn-primary">
+          <i class="fas fa-plus"></i> Add Movie
+        </a>
       </div>
-    </div>
-    {% endfor %}
+    {% else %}
+      {% for item in items %}
+        <div class="card" data-name="{{ item.name|lower }}" data-type="movie" data-country="{{ item.country|lower }}">
+          <div class="card-poster">
+            {% if item.poster_url %}
+              <img src="{{ get_poster(item) }}" alt="{{ item.name }} poster" loading="lazy" />
+            {% else %}
+              <div class="poster-placeholder">
+                <i class="fas fa-film"></i>
+              </div>
+            {% endif %}
+            <div class="card-overlay">
+              <button onclick="openTrailer(event, '{{ item.name }}', '{{ item.type }}', '{{ item.year }}', '{{ item.country }}')" class="play-btn">
+                <i class="fas fa-play"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-content">
+            <h3>{{ item.name }}</h3>
+            {% if item.year %}
+              <p class="card-year"><i class="fas fa-calendar"></i> {{ item.year }}</p>
+            {% endif %}
+            <p class="card-type"><i class="fas fa-tag"></i> {{ item.type }}</p>
+            {% if item.rating %}
+              <p class="card-rating">
+                <i class="fas fa-star"></i> {{ item.rating }}/10
+              </p>
+            {% endif %}
+          </div>
+          <div class="card-actions">
+            <a href="{{ url_for('edit_entry', category='movies', index=item.original_index) }}?tab={{ active_tab }}&q={{ query|urlencode }}" class="action-btn edit-btn" onclick="event.stopPropagation()">
+              <i class="fas fa-edit"></i>
+            </a>
+            <a href="{{ url_for('delete_entry', category='movies', index=item.original_index) }}?tab={{ active_tab }}&q={{ query|urlencode }}" class="action-btn delete-btn" onclick="event.stopPropagation(); return confirm('Are you sure?')">
+              <i class="fas fa-trash"></i>
+            </a>
+          </div>
+        </div>
+      {% endfor %}
+    {% endif %}
   </div>
+
 <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 <script>
-// Updated normalization function
+const activeTab = '{{ active_tab }}';
+const currentQuery = '{{ query }}';
+const sortBy = '{{ sort_by }}';
+
+// Sort functionality
+function updateSort() {
+  const sortValue = document.getElementById('sort-select').value;
+  window.location.href = `/?tab=${activeTab}&q=${currentQuery}&sort=${sortValue}`;
+}
+
+// Trailer functionality
+function openTrailer(event, name, type, year, country) {
+  event.stopPropagation();
+  
+  fetch(`/trailer?name=${encodeURIComponent(name)}&type=${type}&year=${year}&country=${country}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.trailer_url) {
+        document.getElementById('media-title').textContent = `${name} - Trailer`;
+        document.getElementById('trailer-container').style.display = 'block';
+        document.getElementById('media-results').style.display = 'none';
+        document.getElementById('trailer-frame').src = data.trailer_url;
+        document.getElementById('local-media-modal').classList.add('active');
+      } else {
+        alert('Trailer not available');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching trailer:', error);
+      alert('Failed to load trailer');
+    });
+}
+
+// Episode normalization
 function normalizeEpisode(ep) {
   if (!ep) return '';
-  // Handle absolute episode numbers separately
-  if (/^\d+$/.test(ep)) return ep.padStart(4, '0');  // Pad to 4 digits
-
+  if (/^\d+$/.test(ep)) return ep.padStart(4, '0');
+  
   return ep
     .toUpperCase()
     .replace(/\s+/g, '')
@@ -104,111 +289,167 @@ function normalizeEpisode(ep) {
     .replace(/(\d+)/g, match => match.padStart(2, '0'));
 }
 
+// Local media functionality
 async function openLocalMedia(name, type, currentEp) {
-    try {
-        const response = await fetch(`/local_media?name=${encodeURIComponent(name)}&type=${type}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            alert(`Error: ${data.error}`);
-            return;
-        }
-
-        document.getElementById('media-title').textContent =
-            `${type === 'movie' ? 'Movie' : 'Series'} Files: ${name}`;
-        
-        const resultsDiv = document.getElementById('media-results');
-        resultsDiv.innerHTML = '';
-
-        if (data.results.length === 0) {
-            resultsDiv.innerHTML = '<p>No files found</p>';
-        } else {
-            data.results.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.style.margin = '10px 0';
-                itemDiv.style.padding = '10px';
-                itemDiv.style.border = '1px solid #ddd';
-                itemDiv.style.borderRadius = '5px';
-
-                const playButton = document.createElement('button');
-                playButton.style.background = '#4CAF50';
-                playButton.style.color = 'white';
-                playButton.style.border = 'none';
-                playButton.style.padding = '5px 10px';
-                playButton.textContent = 'Play';
-                playButton.addEventListener('click', () => {
-                    playMedia(item.path);
-                });
-
-                if (type === 'series') {
-                    itemDiv.innerHTML = `
-                        <p><strong>Episode ${item.episode}</strong></p>
-                        <p>${item.name}</p>
-                    `;
-                    itemDiv.appendChild(playButton);
-
-                    // Check if current episode is absolute number
-                    const isAbsoluteEp = /^\d+$/.test(currentEp);
-
-                    if (isAbsoluteEp) {
-                        // Special handling for absolute episode numbers
-                        const absEpisode = currentEp.padStart(4, '0');
-                        if (item.episode === absEpisode) {
-                            itemDiv.style.border = '2px solid #4CAF50';
-                            itemDiv.style.background = 'rgb(17 86 22)';
-                        }
-                    } else {
-                        // Original season/episode comparison
-                        const normalizedCurrentEp = normalizeEpisode(currentEp);
-                        const normalizedFileEp = normalizeEpisode(item.episode);
-                        if (normalizedFileEp === normalizedCurrentEp) {
-                            itemDiv.style.border = '2px solid #4CAF50';
-                            itemDiv.style.background = 'rgb(17 86 22)';
-                        }
-                    }
-                } else {
-                    itemDiv.innerHTML = `<p>${item.name}</p>`;
-                    itemDiv.appendChild(playButton);
-                }
-
-                resultsDiv.appendChild(itemDiv);
-            });
-        }
-
-        document.getElementById('local-media-modal').style.display = 'flex';
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Failed to load media files');
+  try {
+    const response = await fetch(`/local_media?name=${encodeURIComponent(name)}&type=${type}`);
+    const data = await response.json();
+    
+    if (data.error) {
+      alert(`Error: ${data.error}`);
+      return;
     }
+
+    document.getElementById('media-title').textContent = `${type === 'movie' ? 'Movie' : 'Series'} Files: ${name}`;
+    document.getElementById('trailer-container').style.display = 'none';
+    document.getElementById('media-results').style.display = 'block';
+    
+    const resultsDiv = document.getElementById('media-results');
+    resultsDiv.innerHTML = '';
+
+    if (data.results.length === 0) {
+      resultsDiv.innerHTML = '<div class="empty-state"><i class="fas fa-folder-open"></i><p>No files found</p></div>';
+    } else {
+      data.results.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'media-item';
+
+        const playButton = document.createElement('button');
+        playButton.className = 'media-play-btn';
+        playButton.innerHTML = '<i class="fas fa-play"></i> Play';
+        playButton.addEventListener('click', () => playMedia(item.path));
+
+        if (type === 'series') {
+          itemDiv.innerHTML = `
+            <div class="media-info">
+              <strong>Episode ${item.episode}</strong>
+              <p>${item.name}</p>
+            </div>
+          `;
+          itemDiv.appendChild(playButton);
+
+          const isAbsoluteEp = /^\d+$/.test(currentEp);
+          if (isAbsoluteEp) {
+            const absEpisode = currentEp.padStart(4, '0');
+            if (item.episode === absEpisode) {
+              itemDiv.classList.add('current-episode');
+            }
+          } else {
+            const normalizedCurrentEp = normalizeEpisode(currentEp);
+            const normalizedFileEp = normalizeEpisode(item.episode);
+            if (normalizedFileEp === normalizedCurrentEp) {
+              itemDiv.classList.add('current-episode');
+            }
+          }
+        } else {
+          itemDiv.innerHTML = `
+            <div class="media-info">
+              <p>${item.name}</p>
+            </div>
+          `;
+          itemDiv.appendChild(playButton);
+        }
+
+        resultsDiv.appendChild(itemDiv);
+      });
+    }
+
+    document.getElementById('local-media-modal').classList.add('active');
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Failed to load media files');
+  }
 }
 
-// Keep the existing playMedia function
 function playMedia(path) {
-    const encodedPath = encodeURIComponent(path);
-    window.open(`/play_local?path=${encodedPath}`, '_blank');
+  const encodedPath = encodeURIComponent(path);
+  window.open(`/play_local?path=${encodedPath}`, '_blank');
 }
 
 function closeMediaModal() {
-    document.getElementById('local-media-modal').style.display = 'none';
-    document.getElementById('trailer-frame').src = '';
+  document.getElementById('local-media-modal').classList.remove('active');
+  document.getElementById('trailer-frame').src = '';
 }
 
-// Add click handler to cards
+// Watch History
+async function openHistorySidebar() {
+  const sidebar = document.getElementById('history-sidebar');
+  const content = document.getElementById('history-content');
+  
+  try {
+    const response = await fetch('/watch_history');
+    const history = await response.json();
+    
+    content.innerHTML = '';
+    
+    if (history.length === 0) {
+      content.innerHTML = '<div class="empty-state"><i class="fas fa-history"></i><p>No watch history</p></div>';
+    } else {
+      history.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        historyItem.innerHTML = `
+          <div class="history-info">
+            <strong>${item.name}</strong>
+            ${item.episode ? `<p>Episode: ${item.episode}</p>` : ''}
+            <small>${new Date(item.timestamp).toLocaleString()}</small>
+          </div>
+        `;
+        content.appendChild(historyItem);
+      });
+    }
+    
+    sidebar.classList.add('active');
+  } catch (error) {
+    console.error('Error loading history:', error);
+  }
+}
+
+function closeHistorySidebar() {
+  document.getElementById('history-sidebar').classList.remove('active');
+}
+
+// Statistics
+async function openStatsModal() {
+  try {
+    const response = await fetch('/statistics');
+    const stats = await response.json();
+    
+    document.getElementById('total-movies').textContent = stats.total_movies;
+    document.getElementById('total-series').textContent = stats.total_series;
+    document.getElementById('total-watching').textContent = stats.series_by_condition.Watching || 0;
+    document.getElementById('total-finished').textContent = stats.series_by_condition.Finished || 0;
+    
+    document.getElementById('stats-modal').classList.add('active');
+  } catch (error) {
+    console.error('Error loading statistics:', error);
+  }
+}
+
+function closeStatsModal() {
+  document.getElementById('stats-modal').classList.remove('active');
+}
+
+// Card click handlers
 document.querySelectorAll('.card').forEach(card => {
-    card.addEventListener('click', function() {
-        const name = this.dataset.name;
-        const type = this.dataset.type;
-        const currentEp = this.dataset.currentEp;
-        openLocalMedia(name, type, currentEp);
-    });
+  card.addEventListener('click', function() {
+    const name = this.dataset.name;
+    const type = this.dataset.type;
+    const currentEp = this.dataset.currentEp;
+    openLocalMedia(name, type, currentEp);
+  });
 });
 
-// Prevent card click when clicking actions
-document.querySelectorAll('.actions a').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
+// Close modals on outside click
+document.querySelectorAll('.modal').forEach(modal => {
+  modal.addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.remove('active');
+    }
+  });
 });
+
+
 </script>
 </body>
 </html>

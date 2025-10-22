@@ -6,91 +6,173 @@
 <title>{{ action }} Entry - MyFlixVault</title>
 <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style-edit.css') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
 <header>
-  <h1>MyFlixVault</h1>
-  <div class="search-container">
-    <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}" style="color:#fff;text-decoration:none;font-weight:bold;">← Back</a>
+  <div class="header-content">
+    <h1><i class="fas fa-{% if action == 'Add' %}plus{% else %}edit{% endif %}"></i> {{ action }} Entry</h1>
+    <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}" class="back-btn">
+      <i class="fas fa-arrow-left"></i> Back
+    </a>
   </div>
 </header>
 
 <div class="container">
-  <h2>{{ action }} Entry</h2>
-  <form method="POST">
-    <input type="hidden" name="tab" value="{{ tab }}">
-    <input type="hidden" name="q" value="{{ q }}">
-    
-    <div class="form-group">
-      <label for="category">Category</label>
-      <select name="category" id="category" required>
-        <option value="movies" {% if tab == 'movies' %}selected{% endif %}>Movie</option>
-        <option value="series" {% if tab == 'series' %}selected{% endif %}>Series</option>
-      </select>
+  <div class="form-container">
+    <!-- Preview Card -->
+    <div class="preview-card" id="preview-card">
+      <div class="preview-poster">
+        <img id="preview-poster-img" src="{{ item.poster_url if item and item.poster_url else '' }}" 
+             alt="Poster Preview" style="{% if not item or not item.poster_url %}display:none{% endif %}">
+        <div id="preview-placeholder" style="{% if item and item.poster_url %}display:none{% endif %}">
+          <i class="fas fa-image"></i>
+          <p>Preview</p>
+        </div>
+      </div>
+      <div class="preview-info">
+        <h3 id="preview-name">{{ item.name if item else 'Title' }}</h3>
+        <p id="preview-year">{{ item.year if item else 'Year' }}</p>
+        <p id="preview-type">{{ item.type if item else 'Type' }}</p>
+      </div>
     </div>
 
+    <!-- Form -->
+    <form method="POST" class="entry-form">
+      <input type="hidden" name="tab" value="{{ tab }}">
+      <input type="hidden" name="q" value="{{ q }}">
+      
+      <div class="form-section">
+        <h2><i class="fas fa-info-circle"></i> Basic Information</h2>
+        
+        <div class="form-group">
+          <label for="category">
+            <i class="fas fa-layer-group"></i> Category *
+          </label>
+          <select name="category" id="category" required>
+            <option value="movies" {% if tab == 'movies' %}selected{% endif %}>Movie</option>
+            <option value="series" {% if tab == 'series' %}selected{% endif %}>Series</option>
+          </select>
+        </div>
 
-    <div class="form-group">
-      <label for="name">Name</label>
-      <input type="text" name="name" id="name" value="{{ item.name if item else '' }}" required>
-    </div>
+        <div class="form-group">
+          <label for="name">
+            <i class="fas fa-heading"></i> Name *
+          </label>
+          <input type="text" name="name" id="name" value="{{ item.name if item else '' }}" required placeholder="Enter title">
+        </div>
 
-    <div class="form-group">
-      <label for="year">Year</label>
-      <input type="text" name="year" id="year" value="{{ item.year if item else '' }}">
-    </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="year">
+              <i class="fas fa-calendar"></i> Year
+            </label>
+            <input type="text" name="year" id="year" value="{{ item.year if item else '' }}" placeholder="2024" maxlength="4">
+          </div>
 
-    <div class="form-group">
-      <label for="country">Country</label>
-      <input type="text" name="country" id="country" value="{{ item.country if item else '' }}">
-    </div>
+          <div class="form-group">
+            <label for="country">
+              <i class="fas fa-globe"></i> Country
+            </label>
+            <input type="text" name="country" id="country" value="{{ item.country if item else '' }}" placeholder="US">
+          </div>
+        </div>
 
-    <div class="form-group">
-      <label for="type">Type</label>
-      <input type="text" name="type" id="type" value="{{ item.type if item else '' }}" required>
-    </div>
+        <div class="form-group">
+          <label for="type">
+            <i class="fas fa-tag"></i> Type *
+          </label>
+          <input type="text" name="type" id="type" value="{{ item.type if item else '' }}" required placeholder="e.g., Action, Drama">
+        </div>
 
-    <div class="form-group">
-  <label for="poster_url">Poster URL</label>
-  <input type="text" name="poster_url" id="poster_url" value="{{ item.poster_url if item else '' }}">
-</div>
+        <div class="form-group">
+          <label for="rating">
+            <i class="fas fa-star"></i> Rating (0-10)
+          </label>
+          <input type="number" name="rating" id="rating" value="{{ item.rating if item else '' }}" 
+                 min="0" max="10" step="0.1" placeholder="8.5">
+        </div>
 
-<div id="series-fields" style="display: none;">
-  <div class="form-group">
-    <label for="ep">Episode</label>
-    <input type="text" name="ep" id="ep" value="{{ item.ep if item else '' }}">
+        <div class="form-group">
+          <label for="notes">
+            <i class="fas fa-sticky-note"></i> Notes
+          </label>
+          <textarea name="notes" id="notes" rows="4" placeholder="Add your personal notes...">{{ item.notes if item else '' }}</textarea>
+        </div>
+      </div>
+
+      <!-- Series Specific Fields -->
+      <div id="series-fields" class="form-section" style="display: none;">
+        <h2><i class="fas fa-tv"></i> Series Information</h2>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="ep">
+              <i class="fas fa-list-ol"></i> Current Episode
+            </label>
+            <input type="text" name="ep" id="ep" value="{{ item.ep if item else '' }}" placeholder="S01E01 or 15">
+          </div>
+
+          <div class="form-group">
+            <label for="condition">
+              <i class="fas fa-tasks"></i> Status
+            </label>
+            <select name="condition" id="condition">
+              {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
+                <option value="{{ cond }}" {% if item and item.condition == cond %}selected{% endif %}>{{ cond }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Poster Section -->
+      <div class="form-section">
+        <h2><i class="fas fa-image"></i> Poster</h2>
+        
+        <div class="form-group">
+          <label for="poster_url">
+            <i class="fas fa-link"></i> Poster URL
+          </label>
+          <input type="url" name="poster_url" id="poster_url" value="{{ item.poster_url if item else '' }}" 
+                 placeholder="https://image.tmdb.org/t/p/w500/...">
+          <small class="help-text">Leave empty to auto-fetch from API</small>
+        </div>
+
+        {% if action == 'Edit' %}
+        <div class="checkbox-group">
+          <input type="checkbox" name="regenerate_poster" id="regenerate_poster">
+          <label for="regenerate_poster">
+            <i class="fas fa-sync-alt"></i> Regenerate Poster from API
+          </label>
+        </div>
+        {% endif %}
+
+        <button type="button" onclick="previewPoster()" class="btn-secondary">
+          <i class="fas fa-eye"></i> Preview Poster
+        </button>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="form-actions">
+        <button type="submit" class="btn-save">
+          <i class="fas fa-save"></i> Save Entry
+        </button>
+        <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}" class="btn-cancel">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="button" onclick="clearForm()" class="btn-secondary">
+          <i class="fas fa-eraser"></i> Clear
+        </button>
+      </div>
+    </form>
   </div>
-
-  <div class="form-group" style="margin-top:10px;">
-    <label for="condition">Condition</label>
-    <select name="condition" id="condition" required>
-      {% for cond in ['Stopped', 'Finished', 'Awaiting', 'Watching'] %}
-        <option value="{{ cond }}" {% if item and item.condition == cond %}selected{% endif %}>{{ cond }}</option>
-      {% endfor %}
-    </select>
-  </div>
-</div>
-
-
-
-
-    {% if action == 'Edit' %}
-    <div class="checkbox-group">
-      <input type="checkbox" name="regenerate_poster" id="regenerate_poster">
-      <label for="regenerate_poster">Regenerate Poster</label>
-    </div>
-    {% endif %}
-
-    <div class="actions">
-      <button type="submit">Save</button>
-      <a href="{{ url_for('index') }}?tab={{ tab }}&q={{ q|urlencode }}">Cancel</a>
-    </div>
-  </form>
 </div>
 
 <script>
-function toggleSeriesFields() {
+  // Toggle series fields based on category
+  function toggleSeriesFields() {
     const category = document.getElementById("category").value;
     const seriesFields = document.getElementById("series-fields");
     if (category === "series") {
@@ -101,9 +183,96 @@ function toggleSeriesFields() {
   }
 
   document.getElementById("category").addEventListener("change", toggleSeriesFields);
-
-  // Run it once on page load to handle pre-selected values
   window.addEventListener("DOMContentLoaded", toggleSeriesFields);
-  </script>
+
+  // Live preview updates
+  document.getElementById('name').addEventListener('input', function() {
+    document.getElementById('preview-name').textContent = this.value || 'Title';
+  });
+
+  document.getElementById('year').addEventListener('input', function() {
+    document.getElementById('preview-year').textContent = this.value || 'Year';
+  });
+
+  document.getElementById('type').addEventListener('input', function() {
+    document.getElementById('preview-type').textContent = this.value || 'Type';
+  });
+
+  document.getElementById('poster_url').addEventListener('input', function() {
+    if (this.value) {
+      document.getElementById('preview-poster-img').src = this.value;
+      document.getElementById('preview-poster-img').style.display = 'block';
+      document.getElementById('preview-placeholder').style.display = 'none';
+    } else {
+      document.getElementById('preview-poster-img').style.display = 'none';
+      document.getElementById('preview-placeholder').style.display = 'flex';
+    }
+  });
+
+  // Preview poster function
+  function previewPoster() {
+    const posterUrl = document.getElementById('poster_url').value;
+    if (posterUrl) {
+      window.open(posterUrl, '_blank', 'width=500,height=750');
+    } else {
+      alert('Please enter a poster URL first');
+    }
+  }
+
+  // Clear form
+  function clearForm() {
+    if (confirm('Are you sure you want to clear all fields?')) {
+      document.querySelector('.entry-form').reset();
+      document.getElementById('preview-name').textContent = 'Title';
+      document.getElementById('preview-year').textContent = 'Year';
+      document.getElementById('preview-type').textContent = 'Type';
+      document.getElementById('preview-poster-img').style.display = 'none';
+      document.getElementById('preview-placeholder').style.display = 'flex';
+    }
+  }
+
+  // Form validation
+  document.querySelector('.entry-form').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const type = document.getElementById('type').value.trim();
+    
+    if (!name || !type) {
+      e.preventDefault();
+      alert('Please fill in all required fields (marked with *)');
+      return false;
+    }
+
+    // Validate year if provided
+    const year = document.getElementById('year').value;
+    if (year && (year.length !== 4 || isNaN(year) || year < 1900 || year > 2100)) {
+      e.preventDefault();
+      alert('Please enter a valid year (1900-2100)');
+      return false;
+    }
+
+    // Validate rating if provided
+    const rating = document.getElementById('rating').value;
+    if (rating && (isNaN(rating) || rating < 0 || rating > 10)) {
+      e.preventDefault();
+      alert('Rating must be between 0 and 10');
+      return false;
+    }
+  });
+
+  // Auto-suggest from filename (if adding from local media)
+  const urlParams = new URLSearchParams(window.location.search);
+  const autoFill = urlParams.get('autofill');
+  if (autoFill) {
+    try {
+      const data = JSON.parse(decodeURIComponent(autoFill));
+      if (data.name) document.getElementById('name').value = data.name;
+      if (data.year) document.getElementById('year').value = data.year;
+      if (data.type) document.getElementById('type').value = data.type;
+      if (data.episode) document.getElementById('ep').value = data.episode;
+    } catch (e) {
+      console.error('Error parsing autofill data:', e);
+    }
+  }
+</script>
 </body>
 </html>

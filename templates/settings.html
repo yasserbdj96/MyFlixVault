@@ -6,59 +6,233 @@
     <title>Settings - MyFlixVault</title>
     <link rel="icon" href="{{ url_for('static', filename='logo.png') }}" type="image/png">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style-edit.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body data-theme="{{ settings.theme }}">
     <header>
-        <h1>MyFlixVault Settings</h1>
-        <div class="search-container">
-            <a href="{{ url_for('index') }}" style="color:#fff;text-decoration:none;font-weight:bold;">← Back</a>
+        <div class="header-content">
+            <h1><i class="fas fa-cog"></i> Settings</h1>
+            <a href="{{ url_for('index') }}" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Collection
+            </a>
         </div>
     </header>
 
     <div class="container">
-        <h2>API Configuration</h2>
-        <form method="POST">
-            <div class="form-group">
-                <label for="api_provider">API Provider</label>
-                <select name="api_provider" id="api_provider" required>
-                    <option value="tmdb" {% if settings.api_provider == 'tmdb' %}selected{% endif %}>The Movie DB (TMDB)</option>
-                    <option value="omdb" {% if settings.api_provider == 'omdb' %}selected{% endif %}>OMDB API</option>
-                    <option value="custom" {% if settings.api_provider == 'custom' %}selected{% endif %}>Custom API</option>
-                </select>
-            </div>
-
-            <div id="api-key-fields">
+        <form method="POST" class="settings-form">
+            <!-- API Configuration Section -->
+            <div class="settings-section">
+                <h2><i class="fas fa-plug"></i> API Configuration</h2>
+                
                 <div class="form-group">
-                    <label for="api_key">API Key</label>
-                    <input type="text" name="api_key" id="api_key" value="{{ settings.api_key }}" required>
+                    <label for="api_provider">
+                        <i class="fas fa-server"></i> API Provider
+                    </label>
+                    <select name="api_provider" id="api_provider" required>
+                        <option value="tmdb" {% if settings.api_provider == 'tmdb' %}selected{% endif %}>The Movie DB (TMDB)</option>
+                        <option value="omdb" {% if settings.api_provider == 'omdb' %}selected{% endif %}>OMDB API</option>
+                        <option value="custom" {% if settings.api_provider == 'custom' %}selected{% endif %}>Custom API</option>
+                    </select>
+                    <small class="help-text">Choose your preferred movie database API</small>
+                </div>
+
+                <div id="api-key-fields">
+                    <div class="form-group">
+                        <label for="api_key">
+                            <i class="fas fa-key"></i> API Key
+                        </label>
+                        <input type="password" name="api_key" id="api_key" value="{{ settings.api_key }}" required>
+                        <button type="button" onclick="togglePassword('api_key')" class="toggle-password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <small class="help-text">Your API key from the selected provider</small>
+                    </div>
+                </div>
+
+                <div id="custom-api-fields" style="display: {% if settings.api_provider == 'custom' %}block{% else %}none{% endif %};">
+                    <div class="form-group">
+                        <label for="poster_api_url">
+                            <i class="fas fa-image"></i> Poster API URL
+                        </label>
+                        <input type="text" name="poster_api_url" id="poster_api_url" value="{{ settings.poster_api_url }}" placeholder="https://api.example.com/poster">
+                        <small class="help-text">Custom endpoint for fetching posters</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="trailer_api_url">
+                            <i class="fas fa-play-circle"></i> Trailer API URL
+                        </label>
+                        <input type="text" name="trailer_api_url" id="trailer_api_url" value="{{ settings.trailer_api_url }}" placeholder="https://api.example.com/trailer">
+                        <small class="help-text">Custom endpoint for fetching trailers</small>
+                    </div>
                 </div>
             </div>
 
-            <div id="custom-api-fields" style="display: {% if settings.api_provider == 'custom' %}block{% else %}none{% endif %};">
+            <!-- Media Settings Section -->
+            <div class="settings-section">
+                <h2><i class="fas fa-folder"></i> Media Settings</h2>
+                
                 <div class="form-group">
-                    <label for="poster_api_url">Poster API URL</label>
-                    <input type="text" name="poster_api_url" id="poster_api_url" value="{{ settings.poster_api_url }}">
+                    <label for="local_media_path">
+                        <i class="fas fa-hdd"></i> Local Media Path
+                    </label>
+                    <input type="text" name="local_media_path" id="local_media_path" 
+                           value="{{ settings.local_media_path }}" placeholder="e.g., D:\Media or /home/user/Videos">
+                    <small class="help-text">Path to your local media files (movies and series)</small>
                 </div>
+
                 <div class="form-group">
-                    <label for="trailer_api_url">Trailer API URL</label>
-                    <input type="text" name="trailer_api_url" id="trailer_api_url" value="{{ settings.trailer_api_url }}">
+                    <label for="poster_quality">
+                        <i class="fas fa-image"></i> Poster Quality
+                    </label>
+                    <select name="poster_quality" id="poster_quality">
+                        <option value="w185" {% if settings.poster_quality == 'w185' %}selected{% endif %}>Low (185px)</option>
+                        <option value="w342" {% if settings.poster_quality == 'w342' %}selected{% endif %}>Medium (342px)</option>
+                        <option value="w500" {% if settings.poster_quality == 'w500' %}selected{% endif %}>High (500px)</option>
+                        <option value="w780" {% if settings.poster_quality == 'w780' %}selected{% endif %}>Very High (780px)</option>
+                        <option value="original" {% if settings.poster_quality == 'original' %}selected{% endif %}>Original</option>
+                    </select>
+                    <small class="help-text">Higher quality = larger file sizes</small>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="local_media_path">Local Media Path</label>
-                <input type="text" name="local_media_path" id="local_media_path" 
-                       value="{{ settings.local_media_path }}" placeholder="e.g., D:\Media">
-                <p class="help-text">Use Windows paths with backslashes (e.g., D:\Media)</p>
+            <!-- Appearance Settings Section -->
+            <div class="settings-section">
+                <h2><i class="fas fa-palette"></i> Appearance</h2>
+                
+                <div class="form-group">
+                    <label for="theme">
+                        <i class="fas fa-moon"></i> Theme
+                    </label>
+                    <select name="theme" id="theme" onchange="previewTheme()">
+                        <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Dark Mode</option>
+                        <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>Light Mode</option>
+                    </select>
+                    <small class="help-text">Choose your preferred color theme</small>
+                </div>
             </div>
 
+            <!-- Backup Settings Section -->
+            <div class="settings-section">
+                <h2><i class="fas fa-database"></i> Backup & Data</h2>
+                
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" name="enable_auto_backup" id="enable_auto_backup" 
+                           {% if settings.enable_auto_backup %}checked{% endif %}>
+                    <label for="enable_auto_backup">
+                        <i class="fas fa-cloud-upload-alt"></i> Enable Automatic Backups
+                    </label>
+                    <small class="help-text">Automatically backup your collection on every change</small>
+                </div>
+
+                <div class="backup-actions">
+                    <button type="button" onclick="exportData()" class="btn-secondary">
+                        <i class="fas fa-download"></i> Export Collection
+                    </button>
+                    <button type="button" onclick="document.getElementById('import-file').click()" class="btn-secondary">
+                        <i class="fas fa-upload"></i> Import Collection
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+
+                <div class="backup-actions">
+                    <button type="button" onclick="scanEmptyPosters()" class="btn-secondary">
+                        <i class="fas fa-search"></i> Scan Empty Posters
+                    </button>
+                </div>
+
+                
+            </div>
+
+
+            <!-- Validation Settings Section -->
+            <div class="settings-section">
+                <h2><i class="fas fa-check-double"></i> Validation</h2>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" name="check_duplicates" id="check_duplicates"
+                        {% if settings.check_duplicates %}checked{% endif %}>
+                    <label for="check_duplicates">
+                        <i class="fas fa-clone"></i> Check for Duplicate Names
+                    </label>
+                    <small class="help-text">
+                        Prevent adding movies or series with duplicate names
+                    </small>
+                </div>
+
+                <div class="backup-actions">
+                    <button type="button" onclick="scanDuplicates()" class="btn-secondary">
+                        <i class="fas fa-clone"></i> Scan Duplicates
+                    </button>
+                </div>
+            </div>
+
+
+            <!-- Save Button -->
             <div class="actions">
-                <button type="submit">Save Settings</button>
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save"></i> Save Settings
+                </button>
+                <a href="{{ url_for('index') }}" class="btn-cancel">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
             </div>
         </form>
+
+        <!-- Info Cards -->
+        <div class="info-cards">
+            <div class="info-card">
+                <i class="fas fa-info-circle"></i>
+                <h3>TMDB API Key</h3>
+                <p>Get your free API key from <a href="https://www.themoviedb.org/settings/api" target="_blank">The Movie Database</a></p>
+            </div>
+            <div class="info-card">
+                <i class="fas fa-info-circle"></i>
+                <h3>OMDB API Key</h3>
+                <p>Get your free API key from <a href="http://www.omdbapi.com/apikey.aspx" target="_blank">OMDb API</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Empty Posters -->
+    <div id="empty-posters-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-image"></i> Empty Poster URLs</h3>
+                <span class="close" onclick="closeEmptyPostersModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="empty-posters-results">
+                    <p>Scanning for items with empty poster URLs...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeEmptyPostersModal()" class="btn-cancel">Close</button>
+                <button type="button" onclick="regenerateAllPosters()" class="btn-save">
+                    <i class="fas fa-sync"></i> Regenerate All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Duplicates -->
+    <div id="duplicates-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-clone"></i> Duplicate Names</h3>
+                <span class="close" onclick="closeDuplicatesModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="duplicates-results">
+                    <p>Scanning for duplicate names...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="closeDuplicatesModal()" class="btn-cancel">Close</button>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Toggle API fields based on provider
         document.getElementById("api_provider").addEventListener("change", function() {
             const customFields = document.getElementById("custom-api-fields");
             if (this.value === "custom") {
@@ -67,6 +241,333 @@
                 customFields.style.display = "none";
             }
         });
+
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = field.nextElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Preview theme
+        function previewTheme() {
+            const theme = document.getElementById('theme').value;
+            document.body.setAttribute('data-theme', theme);
+        }
+
+        // Export data
+        // Export data - FIXED VERSION
+        function exportData() {
+            fetch('/export_backup')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Backup failed');
+                    }
+                    
+                    // Get filename from Content-Disposition header or use default
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    let filename = `myflixvault_backup_${new Date().toISOString().split('T')[0]}.json`;
+                    
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    return response.blob().then(blob => ({ blob, filename }));
+                })
+                .then(({ blob, filename }) => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error exporting backup: ' + error.message);
+                });
+        }
+
+        // Import data
+        // Import data - IMPROVED VERSION
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!confirm('WARNING: This will replace your current collection. Make sure you have a backup! Continue?')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/import_backup', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error importing: ' + data.error);
+                } else {
+                    alert(data.message);
+                    // Reload the page to show updated collection
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                alert('Error importing file: ' + error);
+            });
+            
+            // Reset the file input
+            event.target.value = '';
+        }
+
+        // Scan for empty posters
+        function scanEmptyPosters() {
+            const modal = document.getElementById('empty-posters-modal');
+            const resultsDiv = document.getElementById('empty-posters-results');
+            
+            // Show loading state
+            resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Scanning for items with empty poster URLs...</p>';
+            modal.style.display = 'flex';
+            
+            fetch('/scan_empty_posters')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        resultsDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                        return;
+                    }
+                    
+                    displayEmptyPostersResults(data);
+                })
+                .catch(error => {
+                    resultsDiv.innerHTML = `<p class="error">Error scanning for empty posters: ${error}</p>`;
+                });
+        }
+
+        // Display results in the modal
+        function displayEmptyPostersResults(data) {
+            const resultsDiv = document.getElementById('empty-posters-results');
+            const totalEmpty = (data.series?.length || 0) + (data.movies?.length || 0);
+            
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <h4>Found ${totalEmpty} items with empty poster URLs</h4>
+                </div>
+            `;
+            
+            // Display series with empty posters
+            if (data.series && data.series.length > 0) {
+                html += `
+                    <h5>Series <span class="empty-count">${data.series.length}</span></h5>
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Episode</th>
+                                    <th>Year</th>
+                                    <th>Country</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.series.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.type || 'tv'}</td>
+                            <td>${item.ep || 'N/A'}</td>
+                            <td>${item.year || 'N/A'}</td>
+                            <td>${item.country || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            // Display movies with empty posters
+            if (data.movies && data.movies.length > 0) {
+                html += `
+                    <h5 style="margin-top: 20px;">Movies <span class="empty-count">${data.movies.length}</span></h5>
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Year</th>
+                                    <th>Country</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.movies.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.type || 'movie'}</td>
+                            <td>${item.year || 'N/A'}</td>
+                            <td>${item.country || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            if (totalEmpty === 0) {
+                html = '<p>No items with empty poster URLs found!</p>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // Close the modal
+        function closeEmptyPostersModal() {
+            document.getElementById('empty-posters-modal').style.display = 'none';
+        }
+
+        // Regenerate all empty posters
+        function regenerateAllPosters() {
+            if (!confirm('This will attempt to regenerate posters for all items with empty poster URLs. This may take a while. Continue?')) {
+                return;
+            }
+            
+            const resultsDiv = document.getElementById('empty-posters-results');
+            resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Regenerating posters... This may take a while.</p>';
+            
+            fetch('/regenerate_empty_posters', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        resultsDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                        return;
+                    }
+                    
+                    resultsDiv.innerHTML = `
+                        <p>✅ Successfully regenerated ${data.regenerated} posters!</p>
+                        <p>${data.failed > 0 ? `Failed to regenerate ${data.failed} posters.` : 'All posters were successfully regenerated.'}</p>
+                        <button type="button" onclick="scanEmptyPosters()" class="btn-secondary">
+                            <i class="fas fa-search"></i> Scan Again
+                        </button>
+                    `;
+                })
+                .catch(error => {
+                    resultsDiv.innerHTML = `<p class="error">Error regenerating posters: ${error}</p>`;
+                });
+        }
+
+        // Form validation
+        document.querySelector('.settings-form').addEventListener('submit', function(e) {
+            const apiKey = document.getElementById('api_key').value;
+            if (!apiKey || apiKey.trim() === '') {
+                e.preventDefault();
+                alert('Please enter an API key');
+                return false;
+            }
+        });
+
+        // Scan for duplicates
+        function scanDuplicates() {
+            const modal = document.getElementById('duplicates-modal');
+            const resultsDiv = document.getElementById('duplicates-results');
+            
+            resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Scanning for duplicates...</p>';
+            modal.style.display = 'flex';
+            
+            fetch('/scan_duplicates')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        resultsDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+                        return;
+                    }
+                    
+                    displayDuplicateResults(data);
+                })
+                .catch(error => {
+                    resultsDiv.innerHTML = `<p class="error">Error scanning duplicates: ${error}</p>`;
+                });
+        }
+
+        function displayDuplicateResults(data) {
+            const resultsDiv = document.getElementById('duplicates-results');
+            const totalDupes = (data.series?.length || 0) + (data.movies?.length || 0);
+            
+            let html = `<h4>Found ${totalDupes} duplicates</h4>`;
+            
+            if (data.series?.length) {
+                html += `
+                    <h5>Series <span class="empty-count">${data.series.length}</span></h5>
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr><th>Name</th><th>Year</th><th>Country</th></tr>
+                            </thead><tbody>
+                `;
+                data.series.forEach(item => {
+                    html += `<tr><td>${item.name}</td><td>${item.year || 'N/A'}</td><td>${item.country || 'N/A'}</td></tr>`;
+                });
+                html += `</tbody></table></div>`;
+            }
+
+            if (data.movies?.length) {
+                html += `
+                    <h5>Movies <span class="empty-count">${data.movies.length}</span></h5>
+                    <div class="table-container">
+                        <table class="results-table">
+                            <thead>
+                                <tr><th>Name</th><th>Year</th><th>Country</th></tr>
+                            </thead><tbody>
+                `;
+                data.movies.forEach(item => {
+                    html += `<tr><td>${item.name}</td><td>${item.year || 'N/A'}</td><td>${item.country || 'N/A'}</td></tr>`;
+                });
+                html += `</tbody></table></div>`;
+            }
+
+            if (totalDupes === 0) {
+                html = '<p>No duplicates found!</p>';
+            }
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Close duplicates modal
+        function closeDuplicatesModal() {
+            document.getElementById('duplicates-modal').style.display = 'none';
+        }
+
     </script>
 </body>
 </html>
