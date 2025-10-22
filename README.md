@@ -428,15 +428,63 @@ Format expected:
 
 ### Main Collection View
 *Beautiful Netflix-inspired interface with cards and smooth animations*
+<div align="center">
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-1.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-1.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-2.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-2.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-3.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-3.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-4.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-4.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-5.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-5.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-6.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-6.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-7.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/interface-7.png" alt="Beautiful Netflix-inspired interface with cards and smooth animations">
+    </a>
+</div>
 
 ### Video Player
 *Professional HTML5 player with custom controls and subtitle support*
+<div align="center">
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/player.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/player.png" alt="Professional HTML5 player with custom controls and subtitle support">
+    </a>
+</div>
+
 
 ### Local Media Browser
 *Browse and organize your local video files*
+<div align="center">
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/local-1.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/local-1.png" alt="Browse and organize your local video files">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/local-2.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/local-2.png" alt="Browse and organize your local video files">
+    </a>
+</div>
 
 ### Statistics Dashboard
 *Track your collection and watching habits*
+<div align="center">
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-1.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-1.png" alt="Track your collection and watching habits">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-2.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-2.png" alt="Track your collection and watching habits">
+    </a>
+    <a href="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-3.png">
+        <img height="100" src="https://raw.githubusercontent.com/yasserbdj96/MyFlixVault/main/screenshot/Dashboard-3.png" alt="Track your collection and watching habits">
+    </a>
+</div>
 
 ---
 
